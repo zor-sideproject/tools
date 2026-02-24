@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>房贷提前还款计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .result-card { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-2xl mx-auto p-6">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🏠 房贷提前还款计算器</h1>
+            <p class="text-gray-500">算一算，提前还贷能省多少利息</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="space-y-4">
+                <!-- 贷款总额 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">贷款总额（万元）</label>
+                    <input type="number" id="loanAmount" value="200" min="1"
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+                </div>
+
+                <!-- 贷款年限 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">贷款年限（年）</label>
+                    <input type="number" id="loanYears" value="25" min="1" max="30"
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+                </div>
+
+                <!-- 年利率 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">年利率（%）</label>
+                    <input type="number" id="interestRate" value="4.2" step="0.01" min="0"
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+                </div>
+
+                <!-- 已还月数 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">已还月数</label>
+                    <input type="number" id="paidMonths" value="12" min="0"
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+                </div>
+
+                <!-- 提前还款金额 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">提前还款金额（万元）</label>
+                    <input type="number" id="prepayAmount" value="20" min="1"
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+                </div>
+
+                <!-- 还款方式 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">提前还款后</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="prepayType" value="reduce-monthly" checked
+                                   class="w-4 h-4 text-blue-600">
+                            <span class="ml-2">月供减少，年限不变</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="prepayType" value="reduce-years"
+                                   class="w-4 h-4 text-blue-600">
+                            <span class="ml-2">年限减少，月供不变</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="calculate()"
+                    class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 rounded-xl transition-colors text-lg">
+                计算
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="space-y-4 hidden">
+            <!-- 原计划 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 result-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 原计划</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">月供</p>
+                        <p class="text-2xl font-bold text-gray-800" id="originalMonthly">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">总利息</p>
+                        <p class="text-2xl font-bold text-gray-800" id="originalInterest">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">还款总额</p>
+                        <p class="text-2xl font-bold text-gray-800" id="originalTotal">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">剩余本金</p>
+                        <p class="text-2xl font-bold text-gray-800" id="remainingPrincipal">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提前还款后 -->
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 result-card border border-green-100">
+                <h3 class="text-lg font-semibold text-green-800 mb-4">✨ 提前还款后</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-green-600">新月供</p>
+                        <p class="text-2xl font-bold text-green-800" id="newMonthly">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-green-600">新总利息</p>
+                        <p class="text-2xl font-bold text-green-800" id="newInterest">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-green-600">新还款总额</p>
+                        <p class="text-2xl font-bold text-green-800" id="newTotal">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-green-600">剩余年限</p>
+                        <p class="text-2xl font-bold text-green-800" id="remainingYears">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 节省 -->
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg p-6 result-card border border-amber-100">
+                <h3 class="text-lg font-semibold text-amber-800 mb-4">💰 节省金额</h3>
+                <div class="text-center">
+                    <p class="text-4xl font-bold text-amber-600" id="saved">-</p>
+                    <p class="text-sm text-amber-600 mt-1">利息节省</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-sm text-gray-400 mt-8">
+            <p>仅供参考，实际以银行为准</p>
+        </div>
+    </div>
+
+    <script>
+        // 等额本息计算月供
+        function calcMonthlyPayment(principal, annualRate, months) {
+            const monthlyRate = annualRate / 100 / 12;
+            if (monthlyRate === 0) return principal / months;
+            return principal * monthlyRate * Math.pow(1 + monthlyRate, months)
+                   / (Math.pow(1 + monthlyRate, months) - 1);
+        }
+
+        // 计算已还本金
+        function calcPaidPrincipal(principal, annualRate, months, paidMonths) {
+            const monthlyRate = annualRate / 100 / 12;
+            const monthlyPayment = calcMonthlyPayment(principal, annualRate, months);
+            let remainingPrincipal = principal;
+
+            for (let i = 0; i < paidMonths; i++) {
+                const interest = remainingPrincipal * monthlyRate;
+                const principalPaid = monthlyPayment - interest;
+                remainingPrincipal -= principalPaid;
+            }
+
+            return principal - remainingPrincipal;
+        }
+
+        // 计算总利息
+        function calcTotalInterest(principal, annualRate, months) {
+            const monthlyPayment = calcMonthlyPayment(principal, annualRate, months);
+            return monthlyPayment * months - principal;
+        }
+
+        function formatMoney(value) {
+            return '¥' + (value / 10000).toFixed(2) + '万';
+        }
+
+        function calculate() {
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value) * 10000;
+            const loanYears = parseInt(document.getElementById('loanYears').value);
+            const interestRate = parseFloat(document.getElementById('interestRate').value);
+            const paidMonths = parseInt(document.getElementById('paidMonths').value);
+            const prepayAmount = parseFloat(document.getElementById('prepayAmount').value) * 10000;
+            const prepayType = document.querySelector('input[name="prepayType"]:checked').value;
+
+            const totalMonths = loanYears * 12;
+
+            // 原计划
+            const originalMonthly = calcMonthlyPayment(loanAmount, interestRate, totalMonths);
+            const originalInterest = calcTotalInterest(loanAmount, interestRate, totalMonths);
+            const originalTotal = loanAmount + originalInterest;
+
+            // 已还本金
+            const paidPrincipal = calcPaidPrincipal(loanAmount, interestRate, totalMonths, paidMonths);
+            const remainingPrincipal = loanAmount - paidPrincipal;
+
+            // 提前还款后剩余本金
+            const newPrincipal = remainingPrincipal - prepayAmount;
+            const remainingMonths = totalMonths - paidMonths;
+
+            let newMonthly, newInterest, newTotal, newRemainingMonths;
+
+            if (prepayType === 'reduce-monthly') {
+                // 月供减少，年限不变
+                newRemainingMonths = remainingMonths;
+                newMonthly = calcMonthlyPayment(newPrincipal, interestRate, remainingMonths);
+                newInterest = calcTotalInterest(newPrincipal, interestRate, remainingMonths);
+                newTotal = newPrincipal + newInterest;
+            } else {
+                // 年限减少，月供不变
+                // 反推需要多少个月才能还清
+                const monthlyRate = interestRate / 100 / 12;
+                const targetMonthly = originalMonthly;
+
+                // 二分查找合适的月数
+                let low = 1, high = remainingMonths;
+                while (low < high) {
+                    const mid = Math.floor((low + high) / 2);
+                    const calcMonthly = calcMonthlyPayment(newPrincipal, interestRate, mid);
+                    if (calcMonthly > targetMonthly) {
+                        low = mid + 1;
+                    } else {
+                        high = mid;
+                    }
+                }
+                newRemainingMonths = low;
+                newMonthly = calcMonthlyPayment(newPrincipal, interestRate, newRemainingMonths);
+                newInterest = calcTotalInterest(newPrincipal, interestRate, newRemainingMonths);
+                newTotal = newPrincipal + newInterest;
+            }
+
+            // 已付利息
+            const paidInterest = originalMonthly * paidMonths - paidPrincipal;
+
+            // 实际节省 = 原总利息 - (已付利息 + 新剩余利息)
+            const saved = originalInterest - (paidInterest + newInterest);
+
+            // 显示结果
+            document.getElementById('results').classList.remove('hidden');
+
+            document.getElementById('originalMonthly').textContent = formatMoney(originalMonthly);
+            document.getElementById('originalInterest').textContent = formatMoney(originalInterest);
+            document.getElementById('originalTotal').textContent = formatMoney(originalTotal);
+            document.getElementById('remainingPrincipal').textContent = formatMoney(remainingPrincipal);
+
+            document.getElementById('newMonthly').textContent = formatMoney(newMonthly);
+            document.getElementById('newInterest').textContent = formatMoney(newInterest);
+            document.getElementById('newTotal').textContent = formatMoney(newTotal);
+            document.getElementById('remainingYears').textContent =
+                Math.floor(newRemainingMonths / 12) + '年' + (newRemainingMonths % 12) + '个月';
+
+            document.getElementById('saved').textContent = formatMoney(saved > 0 ? saved : 0);
+        }
+
+        // 初始计算
+        calculate();
+    </script>
+</body>
+</html>
