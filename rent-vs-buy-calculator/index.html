@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>买房还是租房计算器 | Zor 的副业笔记</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; background: #f5f7fb; color: #1f2937; }
+    .wrap { max-width: 920px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); margin-bottom: 14px; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .sub { color: #4b5563; margin: 0; }
+    .cta { background: #ecfeff; border: 1px solid #67e8f9; color: #155e75; border-radius: 10px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    label { font-size: 13px; color: #374151; display: block; margin-bottom: 4px; }
+    input { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+    button { border: 0; border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor: pointer; }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; margin-left: 8px; }
+    .result { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; }
+    .big { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+    .muted { color: #6b7280; }
+    .footer-links a { color: #1d4ed8; text-decoration: none; margin-right: 10px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>买房还是租房计算器</h1>
+      <p class="sub">输入核心参数，快速对比持有期内“买房总成本”和“租房总成本”。</p>
+    </div>
+
+    <div class="card cta">
+      算完别急着走：想要《房贷优化清单（可直接执行）》，评论/私信关键词：<strong>清单</strong>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="housePrice">房价（元）</label>
+          <input id="housePrice" type="number" value="3000000" />
+        </div>
+        <div>
+          <label for="downPaymentRatio">首付比例（%）</label>
+          <input id="downPaymentRatio" type="number" value="30" />
+        </div>
+        <div>
+          <label for="loanRate">房贷年利率（%）</label>
+          <input id="loanRate" type="number" value="3.6" step="0.01" />
+        </div>
+        <div>
+          <label for="loanYears">贷款年限（年）</label>
+          <input id="loanYears" type="number" value="30" />
+        </div>
+        <div>
+          <label for="holdYears">计划持有/居住年限（年）</label>
+          <input id="holdYears" type="number" value="8" />
+        </div>
+        <div>
+          <label for="monthlyRent">当前月租（元）</label>
+          <input id="monthlyRent" type="number" value="8500" />
+        </div>
+        <div>
+          <label for="rentGrowth">租金年涨幅（%）</label>
+          <input id="rentGrowth" type="number" value="3" step="0.1" />
+        </div>
+        <div>
+          <label for="investReturn">可稳定投资年回报（%）</label>
+          <input id="investReturn" type="number" value="3" step="0.1" />
+        </div>
+      </div>
+      <div style="margin-top: 14px;">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="copyBtn">复制我的结论</button>
+      </div>
+    </div>
+
+    <div class="card result" id="resultBox">
+      <p class="big">等待计算</p>
+      <p class="muted">输入参数后点击“开始计算”。</p>
+    </div>
+
+    <div class="card cta" id="resultCta" style="display:none;">
+      结果已生成 ✅ 想要“买房 vs 租房决策模板”，评论/私信关键词：<strong>模板</strong>
+    </div>
+
+    <div class="card footer-links">
+      更多工具：
+      <a href="https://zor-sideproject.github.io/tools/mortgage-calculator/" target="_blank" rel="noreferrer">房贷提前还款计算器</a>
+      <a href="https://zor-sideproject.github.io/tools/loan-comparison/" target="_blank" rel="noreferrer">还款方式对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/" target="_blank" rel="noreferrer">工具主页</a>
+    </div>
+  </div>
+
+  <script>
+    function monthlyPayment(principal, annualRate, months) {
+      var r = annualRate / 12;
+      if (r === 0) return principal / months;
+      return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+    }
+
+    function fmt(n) {
+      return n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+    }
+
+    function calc() {
+      var housePrice = Number(document.getElementById('housePrice').value);
+      var downPaymentRatio = Number(document.getElementById('downPaymentRatio').value) / 100;
+      var loanRate = Number(document.getElementById('loanRate').value) / 100;
+      var loanYears = Number(document.getElementById('loanYears').value);
+      var holdYears = Number(document.getElementById('holdYears').value);
+      var monthlyRent = Number(document.getElementById('monthlyRent').value);
+      var rentGrowth = Number(document.getElementById('rentGrowth').value) / 100;
+      var investReturn = Number(document.getElementById('investReturn').value) / 100;
+
+      if ([housePrice, downPaymentRatio, loanRate, loanYears, holdYears, monthlyRent, rentGrowth, investReturn].some(function(v) { return Number.isNaN(v) || v < 0; })) {
+        alert('请检查输入参数');
+        return;
+      }
+
+      var downPayment = housePrice * downPaymentRatio;
+      var loanPrincipal = housePrice - downPayment;
+      var totalMonths = loanYears * 12;
+      var holdMonths = holdYears * 12;
+      var mPay = monthlyPayment(loanPrincipal, loanRate, totalMonths);
+
+      var totalMortgagePaid = mPay * holdMonths;
+      var buyCost = downPayment + totalMortgagePaid;
+
+      var rentCost = 0;
+      for (var y = 0; y < holdYears; y++) {
+        rentCost += monthlyRent * 12 * Math.pow(1 + rentGrowth, y);
+      }
+
+      var yearlyReturn = Math.pow(1 + investReturn, holdYears);
+      var investedDownPayment = downPayment * yearlyReturn;
+      var investedDiff = 0;
+      for (var i = 0; i < holdMonths; i++) {
+        var monthDiff = mPay - monthlyRent;
+        if (monthDiff > 0) investedDiff += monthDiff;
+      }
+      var rentOpportunityGain = investedDownPayment + investedDiff;
+      var rentTotalEffectiveCost = rentCost - rentOpportunityGain;
+
+      var diff = buyCost - rentTotalEffectiveCost;
+      var verdict = diff > 0 ? '租房更划算' : '买房更划算';
+      var absDiff = Math.abs(diff);
+
+      var text = verdict + '，差额约 ¥' + fmt(absDiff) + '（持有 ' + holdYears + ' 年）';
+      var detail = '买房累计支出：¥' + fmt(buyCost) + '；租房有效成本：¥' + fmt(rentTotalEffectiveCost);
+
+      var box = document.getElementById('resultBox');
+      box.innerHTML = '<p class="big">' + text + '</p><p>' + detail + '</p><p class="muted">提示：这是决策辅助模型，不含税费/中介费/房价涨跌等变量。</p>';
+
+      document.getElementById('resultCta').style.display = 'block';
+      box.setAttribute('data-summary', text + '；' + detail);
+    }
+
+    function copySummary() {
+      var box = document.getElementById('resultBox');
+      var summary = box.getAttribute('data-summary');
+      if (!summary) {
+        alert('请先计算结果');
+        return;
+      }
+      navigator.clipboard.writeText(summary).then(function() {
+        alert('结论已复制，可直接发给家人或用于发帖');
+      }).catch(function() {
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    document.getElementById('copyBtn').addEventListener('click', copySummary);
+  </script>
+</body>
+</html>
