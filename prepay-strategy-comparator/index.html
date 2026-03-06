@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>提前还款策略对比器 | Zor 的副业笔记</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0; color: #4b5563; }
+    .tip { background: #ecfeff; border: 1px solid #67e8f9; color: #155e75; border-radius: 10px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    label { display: block; font-size: 13px; color: #374151; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .badge-a { background: #dbeafe; color: #1e3a8a; }
+    .badge-b { background: #dcfce7; color: #166534; }
+    .badge-even { background: #f3f4f6; color: #374151; }
+    .kpi { font-size: 24px; font-weight: 700; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: #374151; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .footer-links a { color: #1d4ed8; text-decoration: none; margin-right: 10px; }
+    @media (max-width: 760px) {
+      h1 { font-size: 24px; }
+      .grid, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>📉 提前还款策略对比器（第 4 个工具）</h1>
+      <p class="sub">同样提前还一笔钱：选「缩短年限」还是「降低月供」？一键对比。</p>
+    </div>
+
+    <div class="card tip">
+      使用建议：先填真实房贷参数，再切换「省利息优先 / 现金流优先 / 平衡模式」看结论是否稳定。
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="loanAmount">原贷款本金（万元）</label>
+          <input id="loanAmount" type="number" value="200" min="1" step="0.1" />
+        </div>
+        <div>
+          <label for="annualRate">年利率（%）</label>
+          <input id="annualRate" type="number" value="3.6" min="0" step="0.01" />
+        </div>
+        <div>
+          <label for="loanYears">原贷款年限（年）</label>
+          <input id="loanYears" type="number" value="30" min="1" max="40" />
+        </div>
+        <div>
+          <label for="paidMonths">已还期数（月）</label>
+          <input id="paidMonths" type="number" value="24" min="0" />
+        </div>
+        <div>
+          <label for="prepayAmount">提前还款金额（万元）</label>
+          <input id="prepayAmount" type="number" value="20" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="oppRate">机会成本年化（%）</label>
+          <input id="oppRate" type="number" value="3" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="goalMode">目标偏好</label>
+          <select id="goalMode">
+            <option value="balanced">平衡模式（按机会成本比较）</option>
+            <option value="interest">省利息优先</option>
+            <option value="cashflow">现金流优先</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="resetBtn">恢复默认</button>
+        <button class="btn-sub" id="copyBtn">复制结论</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultBox">
+      <p class="kpi">等待计算</p>
+      <p class="muted">点击“开始计算”查看结论。</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>方案 A：缩短年限（保持月供）</h3>
+        <ul class="list" id="planA"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>方案 B：降低月供（保持年限）</h3>
+        <ul class="list" id="planB"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>基础信息</h3>
+        <ul class="list" id="baseInfo"><li class="muted">-</li></ul>
+      </div>
+    </div>
+
+    <div class="card footer-links">
+      更多工具：
+      <a href="https://zor-sideproject.github.io/tools/mortgage-calculator/" target="_blank" rel="noreferrer">房贷提前还款计算器</a>
+      <a href="https://zor-sideproject.github.io/tools/loan-comparison/" target="_blank" rel="noreferrer">还款方式对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/rent-vs-buy-calculator/" target="_blank" rel="noreferrer">买房 vs 租房决策器</a>
+      <a href="https://zor-sideproject.github.io/tools/" target="_blank" rel="noreferrer">工具主页</a>
+    </div>
+  </div>
+
+  <script>
+    var defaults = {
+      loanAmount: 200,
+      annualRate: 3.6,
+      loanYears: 30,
+      paidMonths: 24,
+      prepayAmount: 20,
+      oppRate: 3,
+      goalMode: 'balanced'
+    };
+
+    function fmtMoney(n) {
+      return '¥' + Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+    }
+
+    function fmtWan(n) {
+      return (n / 10000).toFixed(2) + '万';
+    }
+
+    function annuityPayment(principal, annualRate, months) {
+      if (months <= 0 || principal <= 0) return 0;
+      var r = annualRate / 12;
+      if (r === 0) return principal / months;
+      return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+    }
+
+    function remainingPrincipal(principal, annualRate, months, paidMonths) {
+      if (paidMonths <= 0) return principal;
+      if (paidMonths >= months) return 0;
+      var r = annualRate / 12;
+      if (r === 0) return principal * (months - paidMonths) / months;
+      var pmt = annuityPayment(principal, annualRate, months);
+      var factor = Math.pow(1 + r, paidMonths);
+      return principal * factor - pmt * (factor - 1) / r;
+    }
+
+    function simulateFixedPayment(principal, annualRate, payment, maxMonths) {
+      var r = annualRate / 12;
+      var remain = principal;
+      var payments = [];
+      var interestTotal = 0;
+
+      for (var i = 0; i < maxMonths && remain > 0.01; i++) {
+        var interest = remain * r;
+        var due = remain + interest;
+        var pay = Math.min(payment, due);
+        var principalPart = pay - interest;
+        remain -= principalPart;
+        interestTotal += interest;
+        payments.push(pay);
+      }
+
+      return {
+        months: payments.length,
+        interest: interestTotal,
+        payments: payments,
+        remain: remain
+      };
+    }
+
+    function simulateFixedTerm(principal, annualRate, termMonths) {
+      if (principal <= 0 || termMonths <= 0) {
+        return { payment: 0, interest: 0, payments: new Array(Math.max(termMonths, 0)).fill(0) };
+      }
+      var pay = annuityPayment(principal, annualRate, termMonths);
+      var sim = simulateFixedPayment(principal, annualRate, pay, termMonths);
+      while (sim.payments.length < termMonths) sim.payments.push(0);
+      return {
+        payment: pay,
+        interest: sim.interest,
+        payments: sim.payments.slice(0, termMonths)
+      };
+    }
+
+    function readNum(id) {
+      return Number(document.getElementById(id).value);
+    }
+
+    function resetDefaults() {
+      Object.keys(defaults).forEach(function(k) {
+        var el = document.getElementById(k);
+        if (el) el.value = defaults[k];
+      });
+      document.getElementById('resultBox').innerHTML = '<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看结论。</p>';
+      document.getElementById('planA').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('planB').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('baseInfo').innerHTML = '<li class="muted">-</li>';
+    }
+
+    function calc() {
+      var loanAmount = readNum('loanAmount') * 10000;
+      var annualRate = readNum('annualRate') / 100;
+      var loanYears = readNum('loanYears');
+      var paidMonths = Math.floor(readNum('paidMonths'));
+      var prepayAmount = readNum('prepayAmount') * 10000;
+      var oppRate = readNum('oppRate') / 100;
+      var goalMode = document.getElementById('goalMode').value;
+
+      if ([loanAmount, annualRate, loanYears, paidMonths, prepayAmount, oppRate].some(function(v){ return Number.isNaN(v); })) {
+        alert('请检查输入，存在非数字参数');
+        return;
+      }
+      if (loanAmount <= 0 || loanYears <= 0) {
+        alert('贷款本金和年限必须大于 0');
+        return;
+      }
+
+      var totalMonths = Math.round(loanYears * 12);
+      if (paidMonths < 0 || paidMonths >= totalMonths) {
+        alert('已还期数应在 0 ~ 剩余期数范围内');
+        return;
+      }
+
+      var originalPmt = annuityPayment(loanAmount, annualRate, totalMonths);
+      var remain = remainingPrincipal(loanAmount, annualRate, totalMonths, paidMonths);
+      var remainMonths = totalMonths - paidMonths;
+
+      if (prepayAmount < 0) {
+        alert('提前还款金额不能为负数');
+        return;
+      }
+      if (prepayAmount >= remain) {
+        alert('提前还款金额已大于等于剩余本金，建议直接结清');
+        return;
+      }
+
+      var newPrincipal = remain - prepayAmount;
+      var baseRemainInterest = originalPmt * remainMonths - remain;
+
+      // 方案 A：月供不变，缩短年限
+      var simA = simulateFixedPayment(newPrincipal, annualRate, originalPmt, remainMonths * 2);
+      var monthsA = simA.months;
+      var paymentsA = simA.payments.slice();
+      while (paymentsA.length < remainMonths) paymentsA.push(0);
+      paymentsA = paymentsA.slice(0, remainMonths);
+      var interestA = simA.interest;
+
+      // 方案 B：年限不变，降低月供
+      var simB = simulateFixedTerm(newPrincipal, annualRate, remainMonths);
+      var paymentB = simB.payment;
+      var paymentsB = simB.payments;
+      var interestB = simB.interest;
+
+      var monthsSaved = remainMonths - monthsA;
+      var monthlyDrop = originalPmt - paymentB;
+      var interestSaveA = baseRemainInterest - interestA;
+      var interestSaveB = baseRemainInterest - interestB;
+      var extraInterestBvsA = interestB - interestA;
+
+      // 平衡模式：把 A/B 月度付款差按机会成本滚到剩余期末
+      var monthlyOpp = oppRate / 12;
+      var fvDiffA = 0; // A 相对 B 在期末多出来的资金
+      for (var i = 0; i < remainMonths; i++) {
+        var savingA = (paymentsB[i] || 0) - (paymentsA[i] || 0); // A 少付为正
+        fvDiffA += savingA * Math.pow(1 + monthlyOpp, remainMonths - 1 - i);
+      }
+
+      var rec = '', badgeClass = '', reason = '';
+      if (goalMode === 'interest') {
+        if (interestA + 1 < interestB) {
+          rec = '推荐方案 A：缩短年限'; badgeClass = 'badge-a';
+          reason = '你的偏好是省利息，方案 A 的剩余利息更低。';
+        } else if (interestB + 1 < interestA) {
+          rec = '推荐方案 B：降低月供'; badgeClass = 'badge-b';
+          reason = '在当前参数下，方案 B 的剩余利息更低（较少见）。';
+        } else {
+          rec = '两方案接近持平'; badgeClass = 'badge-even';
+          reason = '两边剩余利息差距很小，可按现金流偏好决定。';
+        }
+      } else if (goalMode === 'cashflow') {
+        if (monthlyDrop > 1) {
+          rec = '推荐方案 B：降低月供'; badgeClass = 'badge-b';
+          reason = '你的偏好是现金流，方案 B 能立即降低月供压力。';
+        } else {
+          rec = '两方案接近持平'; badgeClass = 'badge-even';
+          reason = '两边月供压力差异不大，可优先考虑省息。';
+        }
+      } else {
+        if (Math.abs(fvDiffA) < 1000) {
+          rec = '两方案接近持平'; badgeClass = 'badge-even';
+          reason = '按你设定的机会成本测算，到期未来价值差距不大。';
+        } else if (fvDiffA > 0) {
+          rec = '推荐方案 A：缩短年限'; badgeClass = 'badge-a';
+          reason = '按机会成本折算，方案 A 在剩余期末净现金更高。';
+        } else {
+          rec = '推荐方案 B：降低月供'; badgeClass = 'badge-b';
+          reason = '按机会成本折算，方案 B 在剩余期末净现金更高。';
+        }
+      }
+
+      var resultHtml = '' +
+        '<span class="badge ' + badgeClass + '">' + rec + '</span>' +
+        '<p class="kpi">核心差异：多省利息 ' + fmtMoney(Math.abs(extraInterestBvsA)) + '</p>' +
+        '<p>方案 A 剩余利息：<strong>' + fmtMoney(interestA) + '</strong>；方案 B 剩余利息：<strong>' + fmtMoney(interestB) + '</strong></p>' +
+        '<p class="muted">' + reason + '</p>';
+
+      document.getElementById('resultBox').innerHTML = resultHtml;
+
+      var summary = rec +
+        '；A 剩余利息 ' + fmtWan(interestA) +
+        '，B 剩余利息 ' + fmtWan(interestB) +
+        '；A 缩短 ' + monthsSaved + ' 个月，B 月供降低 ' + fmtWan(monthlyDrop) + '/月。';
+      document.getElementById('resultBox').setAttribute('data-summary', summary);
+
+      document.getElementById('planA').innerHTML = [
+        '<li>月供（保持不变）：<span class="mono">' + fmtMoney(originalPmt) + '</span></li>',
+        '<li>预计剩余期数：<span class="mono">' + monthsA + ' 个月</span></li>',
+        '<li>相比原计划缩短：<span class="mono">' + monthsSaved + ' 个月</span></li>',
+        '<li>剩余总利息：<span class="mono">' + fmtMoney(interestA) + '</span></li>',
+        '<li>相对原计划省息：<span class="mono">' + fmtMoney(interestSaveA) + '</span></li>'
+      ].join('');
+
+      document.getElementById('planB').innerHTML = [
+        '<li>新月供：<span class="mono">' + fmtMoney(paymentB) + '</span></li>',
+        '<li>每月少还：<span class="mono">' + fmtMoney(monthlyDrop) + '</span></li>',
+        '<li>剩余期数（不变）：<span class="mono">' + remainMonths + ' 个月</span></li>',
+        '<li>剩余总利息：<span class="mono">' + fmtMoney(interestB) + '</span></li>',
+        '<li>相对原计划省息：<span class="mono">' + fmtMoney(interestSaveB) + '</span></li>'
+      ].join('');
+
+      document.getElementById('baseInfo').innerHTML = [
+        '<li>原月供：<span class="mono">' + fmtMoney(originalPmt) + '</span></li>',
+        '<li>提前还款前剩余本金：<span class="mono">' + fmtMoney(remain) + '</span></li>',
+        '<li>本次提前还款：<span class="mono">' + fmtMoney(prepayAmount) + '</span></li>',
+        '<li>提前后剩余本金：<span class="mono">' + fmtMoney(newPrincipal) + '</span></li>',
+        '<li>平衡模式（A 相对 B 期末净差）：<span class="mono">' + fmtMoney(fvDiffA) + '</span></li>'
+      ].join('');
+    }
+
+    function copySummary() {
+      var summary = document.getElementById('resultBox').getAttribute('data-summary');
+      if (!summary) {
+        alert('请先计算结果');
+        return;
+      }
+      navigator.clipboard.writeText(summary).then(function() {
+        alert('结论已复制，可直接发给家人或客户');
+      }).catch(function() {
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    document.getElementById('resetBtn').addEventListener('click', resetDefaults);
+    document.getElementById('copyBtn').addEventListener('click', copySummary);
+  </script>
+</body>
+</html>
