@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>房贷转贷收益评估器 | Zor 的副业笔记</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap { max-width: 1040px; margin: 24px auto; padding: 0 16px; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0; color: #4b5563; }
+    .tip { background: #eff6ff; border: 1px solid #93c5fd; color: #1e3a8a; border-radius: 10px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    label { display: block; font-size: 13px; color: #374151; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .badge-good { background: #dcfce7; color: #166534; }
+    .badge-mid { background: #fef3c7; color: #92400e; }
+    .badge-bad { background: #fee2e2; color: #991b1b; }
+    .kpi { font-size: 24px; font-weight: 800; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: #374151; }
+    .cta {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+    .cta h3 { margin: 0 0 6px; }
+    .cta p { margin: 0 0 10px; color: #d1d5db; }
+    .cta-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cta a {
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .cta-primary { background: #22c55e; color: #052e16; }
+    .cta-secondary { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; }
+    .footer-links a { color: #1d4ed8; text-decoration: none; margin-right: 10px; }
+    @media (max-width: 760px) {
+      h1 { font-size: 24px; }
+      .grid, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🔁 房贷转贷收益评估器（第 7 个工具）</h1>
+      <p class="sub">当银行给你更低利率时，转贷值不值得？把“省息收益”和“一次性成本”算清楚。</p>
+    </div>
+
+    <div class="card tip">
+      适用场景：已在还房贷，拿到更低利率方案，纠结要不要转贷/置换。
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="remainPrincipal">当前剩余本金（万元）</label>
+          <input id="remainPrincipal" type="number" value="180" min="1" step="0.1" />
+        </div>
+        <div>
+          <label for="remainYears">当前剩余年限（年）</label>
+          <input id="remainYears" type="number" value="26" min="1" max="40" step="1" />
+        </div>
+        <div>
+          <label for="oldRate">当前年利率（%）</label>
+          <input id="oldRate" type="number" value="4.1" min="0" step="0.01" />
+        </div>
+        <div>
+          <label for="newRate">转贷后年利率（%）</label>
+          <input id="newRate" type="number" value="3.3" min="0" step="0.01" />
+        </div>
+        <div>
+          <label for="newYears">转贷后年限（年）</label>
+          <input id="newYears" type="number" value="26" min="1" max="40" step="1" />
+        </div>
+        <div>
+          <label for="refiCost">转贷一次性成本（万元）</label>
+          <input id="refiCost" type="number" value="1.2" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="penaltyFee">原贷款提前还款违约金（万元）</label>
+          <input id="penaltyFee" type="number" value="0" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="discountRate">折现/机会成本年化（%）</label>
+          <input id="discountRate" type="number" value="3" min="0" step="0.1" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="resetBtn">恢复默认</button>
+        <button class="btn-sub" id="copyBtn">复制结论</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultBox">
+      <p class="kpi">等待计算</p>
+      <p class="muted">点击“开始计算”查看转贷建议。</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>方案 A：维持原贷款</h3>
+        <ul class="list" id="planA"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>方案 B：执行转贷</h3>
+        <ul class="list" id="planB"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>决策关键点</h3>
+        <ul class="list" id="keyList"><li class="muted">-</li></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cta" id="ctaBox" style="display:none;">
+        <h3 id="ctaTitle">领取你的转贷执行清单</h3>
+        <p id="ctaText">我会帮你拆成“可执行步骤 + 风险检查点”。</p>
+        <div class="cta-actions">
+          <a id="consultLink" class="cta-primary" href="../consulting/index.html?source=refinance-calculator">预约 60 分钟咨询</a>
+          <a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E8%BD%AC%E8%B4%B7%E6%94%B6%E7%9B%8A%E8%AF%84%E4%BC%B0%E5%92%A8%E8%AF%A2">邮件咨询</a>
+        </div>
+      </div>
+      <p class="muted" style="margin-top: 10px;">注意：本工具为测算模型，不构成金融机构建议，请结合当地银行政策与合同条款。</p>
+    </div>
+
+    <div class="card footer-links">
+      更多工具：
+      <a href="https://zor-sideproject.github.io/tools/prepay-strategy-comparator/" target="_blank" rel="noreferrer">提前还款策略对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/prepay-vs-invest-calculator/" target="_blank" rel="noreferrer">提前还贷 vs 定投指数对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/consulting/" target="_blank" rel="noreferrer">咨询服务</a>
+    </div>
+  </div>
+
+  <script>
+    const defaults = {
+      remainPrincipal: 180,
+      remainYears: 26,
+      oldRate: 4.1,
+      newRate: 3.3,
+      newYears: 26,
+      refiCost: 1.2,
+      penaltyFee: 0,
+      discountRate: 3
+    };
+
+    function n(id) { return Number(document.getElementById(id).value); }
+    function money(v) { return '¥' + Math.round(v).toLocaleString('zh-CN'); }
+    function wan(v) { return (v / 10000).toFixed(2) + ' 万'; }
+
+    function annuityPayment(principal, annualRate, months) {
+      if (principal <= 0 || months <= 0) return 0;
+      const r = annualRate / 12;
+      if (r === 0) return principal / months;
+      return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+    }
+
+    function totalInterest(principal, annualRate, months) {
+      if (principal <= 0 || months <= 0) return 0;
+      const p = annuityPayment(principal, annualRate, months);
+      return p * months - principal;
+    }
+
+    function pvAnnuity(payment, annualRate, months) {
+      if (payment <= 0 || months <= 0) return 0;
+      const r = annualRate / 12;
+      if (r === 0) return payment * months;
+      return payment * (1 - Math.pow(1 + r, -months)) / r;
+    }
+
+    function calcBreakevenMonths(upfrontCost, oldPmt, newPmt) {
+      const monthlySave = oldPmt - newPmt;
+      if (monthlySave <= 0) return Infinity;
+      return Math.ceil(upfrontCost / monthlySave);
+    }
+
+    function reset() {
+      Object.keys(defaults).forEach(k => document.getElementById(k).value = defaults[k]);
+      document.getElementById('resultBox').innerHTML = '<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看转贷建议。</p>';
+      document.getElementById('planA').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('planB').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('keyList').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('ctaBox').style.display = 'none';
+    }
+
+    function calc() {
+      const remainPrincipal = n('remainPrincipal') * 10000;
+      const remainYears = n('remainYears');
+      const oldRate = n('oldRate') / 100;
+      const newRate = n('newRate') / 100;
+      const newYears = n('newYears');
+      const refiCost = n('refiCost') * 10000;
+      const penaltyFee = n('penaltyFee') * 10000;
+      const discountRate = n('discountRate') / 100;
+
+      const vals = [remainPrincipal, remainYears, oldRate, newRate, newYears, refiCost, penaltyFee, discountRate];
+      if (vals.some(v => Number.isNaN(v))) {
+        alert('请检查输入参数');
+        return;
+      }
+      if (remainPrincipal <= 0 || remainYears <= 0 || newYears <= 0) {
+        alert('本金和年限必须大于 0');
+        return;
+      }
+
+      const oldMonths = Math.round(remainYears * 12);
+      const newMonths = Math.round(newYears * 12);
+
+      const oldPmt = annuityPayment(remainPrincipal, oldRate, oldMonths);
+      const oldInterest = totalInterest(remainPrincipal, oldRate, oldMonths);
+      const oldTotalCost = oldInterest;
+
+      const newPmt = annuityPayment(remainPrincipal, newRate, newMonths);
+      const newInterest = totalInterest(remainPrincipal, newRate, newMonths);
+      const upfront = refiCost + penaltyFee;
+      const newTotalCost = newInterest + upfront;
+
+      const totalSaving = oldTotalCost - newTotalCost;
+      const monthlyDiff = oldPmt - newPmt;
+      const breakevenMonths = calcBreakevenMonths(upfront, oldPmt, newPmt);
+
+      const pvOld = pvAnnuity(oldPmt, discountRate, oldMonths);
+      const pvNew = upfront + pvAnnuity(newPmt, discountRate, newMonths);
+      const npvSaving = pvOld - pvNew;
+
+      let badge = '结果接近';
+      let badgeClass = 'badge-mid';
+      let title = '建议再补充条款细节后决策';
+      let summary = `静态总成本差额约 ${money(Math.abs(totalSaving))}，折现后差额约 ${money(Math.abs(npvSaving))}。`;
+
+      const strongPositive = totalSaving > 30000 && npvSaving > 0;
+      const strongNegative = totalSaving < -10000 || npvSaving < -10000;
+
+      if (strongPositive) {
+        badge = '建议转贷';
+        badgeClass = 'badge-good';
+        title = '在当前参数下，转贷有明显优势';
+        summary = `预计可节省总成本 ${money(totalSaving)}，折现后净收益 ${money(npvSaving)}。`;
+      } else if (strongNegative) {
+        badge = '暂不建议转贷';
+        badgeClass = 'badge-bad';
+        title = '在当前参数下，转贷收益不足或为负';
+        summary = `转贷后可能多支出 ${money(Math.abs(totalSaving))}（折现后差额 ${money(Math.abs(npvSaving))}）。`;
+      }
+
+      document.getElementById('resultBox').innerHTML = `
+        <span class="badge ${badgeClass}">${badge}</span>
+        <p class="kpi">${title}</p>
+        <p class="muted">${summary}</p>
+      `;
+
+      document.getElementById('planA').innerHTML = [
+        `<li>剩余月供：<b>${money(oldPmt)}</b></li>`,
+        `<li>剩余总利息：<b>${money(oldInterest)}</b></li>`,
+        `<li>剩余期限：<b>${oldMonths} 个月</b></li>`,
+        `<li>折现总成本（近似）：<b>${money(pvOld)}</b></li>`
+      ].join('');
+
+      document.getElementById('planB').innerHTML = [
+        `<li>转贷后月供：<b>${money(newPmt)}</b></li>`,
+        `<li>转贷后总利息：<b>${money(newInterest)}</b></li>`,
+        `<li>一次性成本（费用+违约金）：<b>${money(upfront)}</b></li>`,
+        `<li>折现总成本（近似）：<b>${money(pvNew)}</b></li>`
+      ].join('');
+
+      const beText = Number.isFinite(breakevenMonths) ? `${breakevenMonths} 个月` : '无法回本（或月供不降）';
+      const termHint = newMonths > oldMonths ? '⚠️ 你设置了延长年限，月供更低但可能拉高总利息。' : '✅ 你未延长期限，结果更适合做纯成本比较。';
+
+      document.getElementById('keyList').innerHTML = [
+        `<li>静态总成本差额：<b>${money(totalSaving)}</b>（正数=转贷省钱）</li>`,
+        `<li>月供变化：<b>${money(monthlyDiff)}</b> / 月</li>`,
+        `<li>预计回本周期：<b>${beText}</b></li>`,
+        `<li>折现后净收益：<b>${money(npvSaving)}</b>（正数更优）</li>`,
+        `<li>${termHint}</li>`
+      ].join('');
+
+      const ctaBox = document.getElementById('ctaBox');
+      const ctaTitle = document.getElementById('ctaTitle');
+      const ctaText = document.getElementById('ctaText');
+      const consultLink = document.getElementById('consultLink');
+      const mailLink = document.getElementById('mailLink');
+
+      if (strongPositive) {
+        ctaTitle.textContent = '做一版“转贷执行清单 + 风险排雷”';
+        ctaText.textContent = '我会帮你核对合同条款、回本周期、现金流影响。';
+      } else if (strongNegative) {
+        ctaTitle.textContent = '做一版“暂不转贷时的替代优化方案”';
+        ctaText.textContent = '比如提前还款节奏、投资比例、现金流缓冲策略。';
+      } else {
+        ctaTitle.textContent = '做一版“临界区决策方案”';
+        ctaText.textContent = '当收益接近时，用执行难度和风险偏好做选择。';
+      }
+
+      consultLink.href = `../consulting/index.html?source=refinance-calculator&saving=${Math.round(totalSaving)}&npv=${Math.round(npvSaving)}`;
+      mailLink.href = `mailto:zorouyang@icloud.com?subject=${encodeURIComponent('转贷收益评估咨询（来自第7工具）')}&body=${encodeURIComponent('结论：' + badge + '\n静态总成本差额：' + Math.round(totalSaving) + ' 元\n折现后净收益：' + Math.round(npvSaving) + ' 元\n请给我执行建议。')}`;
+      ctaBox.style.display = 'block';
+
+      window.__summary = `${badge}｜${title}｜静态差额 ${money(totalSaving)}｜折现差额 ${money(npvSaving)}`;
+    }
+
+    function copySummary() {
+      if (!window.__summary) {
+        alert('请先计算再复制结论');
+        return;
+      }
+      navigator.clipboard.writeText(window.__summary).then(() => alert('结论已复制')).catch(() => alert('复制失败，请手动复制'));
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+    document.getElementById('copyBtn').addEventListener('click', copySummary);
+  </script>
+</body>
+</html>
