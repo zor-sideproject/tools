@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>房贷月供压力测试器 | Zor 的副业笔记</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+    .wrap{max-width:980px;margin:24px auto;padding:0 16px}
+    .card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.08);margin-bottom:14px}
+    h1{margin:0 0 8px;font-size:28px}.sub{margin:0;color:#4b5563}
+    .tip{background:#eff6ff;border:1px solid #93c5fd;color:#1e3a8a;border-radius:10px;padding:12px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    label{display:block;font-size:13px;color:#374151;margin-bottom:4px}
+    input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff}
+    .actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+    button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px}
+    .btn-main{background:#2563eb;color:#fff}.btn-sub{background:#e5e7eb;color:#111827}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:700;margin-bottom:8px}
+    .lv-green{background:#dcfce7;color:#166534}.lv-yellow{background:#fef3c7;color:#92400e}.lv-red{background:#fee2e2;color:#991b1b}
+    .kpi{font-size:24px;font-weight:800;margin:6px 0}.muted{color:#6b7280}.list{margin:8px 0 0;padding-left:18px;color:#374151}
+    .cta{background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#fff;border-radius:14px;padding:16px;margin-top:10px}
+    .cta h3{margin:0 0 6px}.cta p{margin:0 0 10px;color:#d1d5db}.cta-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .cta a{display:inline-block;text-decoration:none;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:700}
+    .cta-primary{background:#22c55e;color:#052e16}.cta-secondary{background:#374151;color:#e5e7eb;border:1px solid #4b5563}
+    @media(max-width:760px){.grid,.grid-3{grid-template-columns:1fr}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card"><h1>🧪 房贷月供压力测试器（第 9 个工具）</h1><p class="sub">把收入下滑、利率上浮、开支增长放进同一模型，看家庭现金流能不能扛住。</p></div>
+  <div class="card tip">建议：先测温和场景，再测极端场景（例如收入 -30%、开支 +15%）。</div>
+  <div class="card">
+    <div class="grid">
+      <div><label for="income">当前月收入（元）</label><input id="income" type="number" value="35000" min="1" step="100" /></div>
+      <div><label for="expense">当前月固定开支（不含月供，元）</label><input id="expense" type="number" value="12000" min="0" step="100" /></div>
+      <div><label for="mortgage">当前月供（元）</label><input id="mortgage" type="number" value="12000" min="0" step="100" /></div>
+      <div><label for="reserve">现金储备（万元）</label><input id="reserve" type="number" value="30" min="0" step="0.1" /></div>
+      <div><label for="incomeDrop">压力测试：收入下滑（%）</label><input id="incomeDrop" type="number" value="25" min="0" max="80" step="1" /></div>
+      <div><label for="expenseRise">压力测试：开支上升（%）</label><input id="expenseRise" type="number" value="10" min="0" max="80" step="1" /></div>
+      <div><label for="mortgageRise">压力测试：月供上升（%）</label><input id="mortgageRise" type="number" value="0" min="0" max="80" step="1" /></div>
+      <div><label for="months">测试观察周期（月）</label><input id="months" type="number" value="12" min="1" max="60" step="1" /></div>
+    </div>
+    <div class="actions"><button class="btn-main" id="calcBtn">开始测试</button><button class="btn-sub" id="resetBtn">恢复默认</button><button class="btn-sub" id="copyBtn">复制结论</button></div>
+  </div>
+
+  <div class="card" id="resultBox"><p class="kpi">等待测试</p><p class="muted">点击“开始测试”查看风险等级。</p></div>
+  <div class="grid-3">
+    <div class="card"><h3>当前状态</h3><ul class="list" id="baseList"><li class="muted">-</li></ul></div>
+    <div class="card"><h3>压力场景</h3><ul class="list" id="stressList"><li class="muted">-</li></ul></div>
+    <div class="card"><h3>建议动作</h3><ul class="list" id="actionList"><li class="muted">-</li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="cta" id="ctaBox" style="display:none;">
+      <h3 id="ctaTitle">领取你的现金流防守方案</h3>
+      <p id="ctaText">我会给你“保守 / 平衡 / 激进”三套抗压动作。</p>
+      <div class="cta-actions">
+        <a id="consultLink" class="cta-primary" href="../consulting/index.html?source=stress-test-calculator">预约咨询</a>
+        <a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E6%9C%88%E4%BE%9B%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95%E5%92%A8%E8%AF%A2">邮件咨询</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const defaults={income:35000,expense:12000,mortgage:12000,reserve:30,incomeDrop:25,expenseRise:10,mortgageRise:0,months:12};
+const n=id=>Number(document.getElementById(id).value);
+const money=v=>'¥'+Math.round(v).toLocaleString('zh-CN');
+function reset(){Object.keys(defaults).forEach(k=>document.getElementById(k).value=defaults[k]);document.getElementById('resultBox').innerHTML='<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始测试”查看风险等级。</p>';['baseList','stressList','actionList'].forEach(id=>document.getElementById(id).innerHTML='<li class="muted">-</li>');document.getElementById('ctaBox').style.display='none';}
+function calc(){
+  const income=n('income'),expense=n('expense'),mortgage=n('mortgage'),reserve=n('reserve')*10000,drop=n('incomeDrop')/100,er=n('expenseRise')/100,mr=n('mortgageRise')/100,months=n('months');
+  if([income,expense,mortgage,reserve,drop,er,mr,months].some(v=>Number.isNaN(v))){alert('请检查输入');return;}
+  const baseFree=income-expense-mortgage;
+  const stressIncome=income*(1-drop),stressExpense=expense*(1+er),stressMortgage=mortgage*(1+mr);
+  const stressFree=stressIncome-stressExpense-stressMortgage;
+  const burn=stressFree<0?Math.abs(stressFree):0;
+  const surviveMonths=burn>0?reserve/burn:Infinity;
+  const reserveAfterPeriod=reserve+stressFree*months;
+  let level='green',badge='lv-green',title='抗压性较好',sum='在当前压力参数下，现金流仍可维持。',acts=['继续保持安全垫≥12个月','每季度重测一次','保留流动性，避免一次性重仓'];
+  if(stressFree<0&&surviveMonths<6){level='red';badge='lv-red';title='高风险：现金流可能快速失守';sum='压力场景下月度为负且安全垫不足 6 个月。';acts=['立即压缩固定开支','暂停大额提前还款/高风险投资','优先建立 9-12 个月安全垫'];}
+  else if(stressFree<0&&surviveMonths<12){level='yellow';badge='lv-yellow';title='中风险：可扛但不稳';sum='压力场景下为负，当前安全垫可支撑一段时间。';acts=['目标把安全垫补到 12 个月','先做分批优化，不做激进决策','设置现金流预警线'];}
+
+  document.getElementById('resultBox').innerHTML=`<span class="badge ${badge}">${level==='green'?'绿灯':level==='yellow'?'黄灯':'红灯'}</span><p class="kpi">${title}</p><p class="muted">${sum}</p>`;
+  document.getElementById('baseList').innerHTML=[`<li>当前月结余：<b>${money(baseFree)}</b></li>`,`<li>房贷占收入：<b>${(mortgage/income*100).toFixed(1)}%</b></li>`,`<li>当前现金储备：<b>${money(reserve)}</b></li>`].join('');
+  document.getElementById('stressList').innerHTML=[`<li>压力后月结余：<b>${money(stressFree)}</b></li>`,`<li>若持续 ${months} 个月后储备：<b>${money(reserveAfterPeriod)}</b></li>`,`<li>安全垫可支撑：<b>${Number.isFinite(surviveMonths)?surviveMonths.toFixed(1)+' 个月':'长期正现金流'}</b></li>`].join('');
+  document.getElementById('actionList').innerHTML=acts.map(x=>`<li>${x}</li>`).join('');
+
+  document.getElementById('consultLink').href=`../consulting/index.html?source=stress-test-calculator&level=${level}`;
+  document.getElementById('mailLink').href=`mailto:zorouyang@icloud.com?subject=${encodeURIComponent('房贷压力测试咨询（第9工具）')}&body=${encodeURIComponent('风险等级：'+level+'\n压力后月结余：'+Math.round(stressFree)+' 元\n请给我抗压方案。')}`;
+  document.getElementById('ctaBox').style.display='block';
+  window.__summary=`${title}｜压力后月结余 ${money(stressFree)}｜安全垫 ${Number.isFinite(surviveMonths)?surviveMonths.toFixed(1)+'个月':'充足'}`;
+}
+function copySummary(){if(!window.__summary){alert('请先测试');return;}navigator.clipboard.writeText(window.__summary).then(()=>alert('已复制')).catch(()=>alert('复制失败'));}
+document.getElementById('calcBtn').addEventListener('click',calc);
+document.getElementById('resetBtn').addEventListener('click',reset);
+document.getElementById('copyBtn').addEventListener('click',copySummary);
+</script>
+</body>
+</html>

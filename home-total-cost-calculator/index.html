@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>买房总成本全景计算器 | Zor 的副业笔记</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+    .wrap{max-width:1040px;margin:24px auto;padding:0 16px}
+    .card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.08);margin-bottom:14px}
+    h1{margin:0 0 8px;font-size:28px}.sub{margin:0;color:#4b5563}
+    .tip{background:#ecfeff;border:1px solid #67e8f9;color:#155e75;border-radius:10px;padding:12px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    label{display:block;font-size:13px;color:#374151;margin-bottom:4px}
+    input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff}
+    .actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+    button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px}
+    .btn-main{background:#2563eb;color:#fff}.btn-sub{background:#e5e7eb;color:#111827}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:700;margin-bottom:8px}
+    .badge-good{background:#dcfce7;color:#166534}.badge-mid{background:#fef3c7;color:#92400e}
+    .kpi{font-size:24px;font-weight:800;margin:6px 0}.muted{color:#6b7280}.list{margin:8px 0 0;padding-left:18px;color:#374151}
+    .cta{background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#fff;border-radius:14px;padding:16px;margin-top:10px}
+    .cta h3{margin:0 0 6px}.cta p{margin:0 0 10px;color:#d1d5db}.cta-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .cta a{display:inline-block;text-decoration:none;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:700}
+    .cta-primary{background:#22c55e;color:#052e16}.cta-secondary{background:#374151;color:#e5e7eb;border:1px solid #4b5563}
+    @media(max-width:760px){.grid,.grid-3{grid-template-columns:1fr}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card"><h1>🧾 买房总成本全景计算器（第 10 个工具）</h1><p class="sub">把房价之外的税费、持有成本、交易成本一次算清，避免“低估总支出”。</p></div>
+  <div class="card tip">适合购房前预算与方案比较：同一房价下，持有 5 年 / 10 年的真实总成本差很多。</div>
+
+  <div class="card">
+    <div class="grid">
+      <div><label for="price">房屋总价（万元）</label><input id="price" type="number" value="500" min="1" step="1" /></div>
+      <div><label for="down">首付比例（%）</label><input id="down" type="number" value="30" min="0" max="100" step="1" /></div>
+      <div><label for="rate">贷款年利率（%）</label><input id="rate" type="number" value="3.8" min="0" step="0.01" /></div>
+      <div><label for="years">贷款年限（年）</label><input id="years" type="number" value="30" min="1" max="40" step="1" /></div>
+      <div><label for="holdYears">持有年限（年）</label><input id="holdYears" type="number" value="8" min="1" max="40" step="1" /></div>
+      <div><label for="taxIn">买入税费比例（%）</label><input id="taxIn" type="number" value="2.5" min="0" max="20" step="0.1" /></div>
+      <div><label for="maintain">每年持有成本比例（%）</label><input id="maintain" type="number" value="1.2" min="0" max="20" step="0.1" /></div>
+      <div><label for="taxOut">卖出交易成本比例（%）</label><input id="taxOut" type="number" value="3" min="0" max="20" step="0.1" /></div>
+      <div><label for="appreciation">房价年涨跌（%）</label><input id="appreciation" type="number" value="2" step="0.1" /></div>
+      <div><label for="altReturn">机会成本年化（%）</label><input id="altReturn" type="number" value="3" min="0" step="0.1" /></div>
+    </div>
+    <div class="actions"><button class="btn-main" id="calcBtn">开始计算</button><button class="btn-sub" id="resetBtn">恢复默认</button><button class="btn-sub" id="copyBtn">复制结论</button></div>
+  </div>
+
+  <div class="card" id="resultBox"><p class="kpi">等待计算</p><p class="muted">点击“开始计算”查看全景总成本。</p></div>
+  <div class="grid-3">
+    <div class="card"><h3>现金流视角</h3><ul class="list" id="cashList"><li class="muted">-</li></ul></div>
+    <div class="card"><h3>资产视角</h3><ul class="list" id="assetList"><li class="muted">-</li></ul></div>
+    <div class="card"><h3>决策提示</h3><ul class="list" id="tipsList"><li class="muted">-</li></ul></div>
+  </div>
+
+  <div class="card"><div class="cta" id="ctaBox" style="display:none;"><h3 id="ctaTitle">领取你的购房预算策略</h3><p id="ctaText">我会按你目标持有年限给“预算上限 + 现金流安全线”。</p><div class="cta-actions"><a id="consultLink" class="cta-primary" href="../consulting/index.html?source=home-total-cost-calculator">预约咨询</a><a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E4%B9%B0%E6%88%BF%E6%80%BB%E6%88%90%E6%9C%AC%E5%92%A8%E8%AF%A2">邮件咨询</a></div></div></div>
+</div>
+
+<script>
+const defaults={price:500,down:30,rate:3.8,years:30,holdYears:8,taxIn:2.5,maintain:1.2,taxOut:3,appreciation:2,altReturn:3};
+const n=id=>Number(document.getElementById(id).value);
+const money=v=>'¥'+Math.round(v).toLocaleString('zh-CN');
+function annuityPayment(p,ar,m){if(p<=0||m<=0)return 0;const r=ar/12;if(r===0)return p/m;return p*r*Math.pow(1+r,m)/(Math.pow(1+r,m)-1)}
+function remainPrincipal(principal,annualRate,totalMonths,paidMonths){if(paidMonths<=0)return principal;if(paidMonths>=totalMonths)return 0;const r=annualRate/12;if(r===0)return principal*(totalMonths-paidMonths)/totalMonths;const pmt=annuityPayment(principal,annualRate,totalMonths);const f=Math.pow(1+r,paidMonths);return principal*f-pmt*(f-1)/r}
+function reset(){Object.keys(defaults).forEach(k=>document.getElementById(k).value=defaults[k]);document.getElementById('resultBox').innerHTML='<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看全景总成本。</p>';['cashList','assetList','tipsList'].forEach(id=>document.getElementById(id).innerHTML='<li class="muted">-</li>');document.getElementById('ctaBox').style.display='none';}
+function calc(){
+  const price=n('price')*10000,down=n('down')/100,rate=n('rate')/100,years=n('years'),holdYears=n('holdYears'),taxIn=n('taxIn')/100,maintain=n('maintain')/100,taxOut=n('taxOut')/100,app=n('appreciation')/100,alt=n('altReturn')/100;
+  if([price,down,rate,years,holdYears,taxIn,maintain,taxOut,app,alt].some(v=>Number.isNaN(v))){alert('请检查输入');return;}
+  const loan=price*(1-down),downPay=price*down; const months=Math.round(years*12),holdMonths=Math.min(months,Math.round(holdYears*12));
+  const pmt=annuityPayment(loan,rate,months); const paidTotal=pmt*holdMonths; const remain=remainPrincipal(loan,rate,months,holdMonths);
+  const buyTax=price*taxIn; const holdCost=price*maintain*holdYears;
+  const futurePrice=price*Math.pow(1+app,holdYears); const sellCost=futurePrice*taxOut; const netSell=futurePrice-sellCost-remain;
+  const totalCashOut=downPay+buyTax+paidTotal+holdCost; const netCost=totalCashOut-netSell;
+  const upfront=downPay+buyTax; const oppCost=upfront*(Math.pow(1+alt,holdYears)-1);
+  const netCostWithOpp=netCost+oppCost;
+
+  let badge='成本可控'; let badgeClass='badge-good'; let title='该持有期下总成本在可接受区间';
+  if(netCostWithOpp>price*0.5){badge='成本偏高';badgeClass='badge-mid';title='建议复核持有年限与交易成本假设';}
+  document.getElementById('resultBox').innerHTML=`<span class="badge ${badgeClass}">${badge}</span><p class="kpi">${title}</p><p class="muted">持有 ${holdYears} 年的净成本约 ${money(netCost)}；计入机会成本后约 ${money(netCostWithOpp)}。</p>`;
+  document.getElementById('cashList').innerHTML=[`<li>首付+买入税费：<b>${money(upfront)}</b></li>`,`<li>持有期总月供支出：<b>${money(paidTotal)}</b></li>`,`<li>持有杂费：<b>${money(holdCost)}</b></li>`,`<li>总现金流出：<b>${money(totalCashOut)}</b></li>`].join('');
+  document.getElementById('assetList').innerHTML=[`<li>预计卖出价：<b>${money(futurePrice)}</b></li>`,`<li>卖出交易成本：<b>${money(sellCost)}</b></li>`,`<li>卖出时剩余贷款：<b>${money(remain)}</b></li>`,`<li>卖出净回收：<b>${money(netSell)}</b></li>`].join('');
+  document.getElementById('tipsList').innerHTML=[`<li>净成本（不含机会成本）：<b>${money(netCost)}</b></li>`,`<li>机会成本：<b>${money(oppCost)}</b></li>`,`<li>全景总成本：<b>${money(netCostWithOpp)}</b></li>`,`<li>建议对比不同持有年限（5/8/10年）再决策</li>`].join('');
+
+  document.getElementById('consultLink').href=`../consulting/index.html?source=home-total-cost-calculator&cost=${Math.round(netCostWithOpp)}`;
+  document.getElementById('mailLink').href=`mailto:zorouyang@icloud.com?subject=${encodeURIComponent('买房总成本咨询（第10工具）')}&body=${encodeURIComponent('全景总成本约：'+Math.round(netCostWithOpp)+' 元\n请给我预算优化建议。')}`;
+  document.getElementById('ctaBox').style.display='block';
+  window.__summary=`${badge}｜净成本 ${money(netCost)}｜全景总成本 ${money(netCostWithOpp)}`;
+}
+function copySummary(){if(!window.__summary){alert('请先计算');return;}navigator.clipboard.writeText(window.__summary).then(()=>alert('已复制')).catch(()=>alert('复制失败'));}
+document.getElementById('calcBtn').addEventListener('click',calc);
+document.getElementById('resetBtn').addEventListener('click',reset);
+document.getElementById('copyBtn').addEventListener('click',copySummary);
+</script>
+</body>
+</html>

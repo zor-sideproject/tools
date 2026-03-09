@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公积金 vs 商贷组合优化器 | Zor 的副业笔记</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f4f6; color: #111827; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .wrap { max-width: 1040px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); margin-bottom: 14px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0; color: #4b5563; }
+    .tip { background: #ecfeff; border: 1px solid #67e8f9; color: #155e75; border-radius: 10px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    label { display: block; font-size: 13px; color: #374151; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #fff; }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .badge-good { background: #dcfce7; color: #166534; }
+    .badge-mid { background: #fef3c7; color: #92400e; }
+    .kpi { font-size: 24px; font-weight: 800; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: #374151; }
+    .cta { background: linear-gradient(135deg, #111827 0%, #1f2937 100%); color: #fff; border-radius: 14px; padding: 16px; margin-top: 10px; }
+    .cta h3 { margin: 0 0 6px; }
+    .cta p { margin: 0 0 10px; color: #d1d5db; }
+    .cta-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cta a { display: inline-block; text-decoration: none; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+    .cta-primary { background: #22c55e; color: #052e16; }
+    .cta-secondary { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; }
+    @media (max-width: 760px) { .grid, .grid-3 { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🏦 公积金 vs 商贷组合优化器（第 8 个工具）</h1>
+      <p class="sub">同样贷款总额，怎么分配公积金和商贷，能省更多利息？</p>
+    </div>
+
+    <div class="card tip">先用“自动最大公积金额度”试算，再切换“自定义公积金金额”找最优平衡点。</div>
+
+    <div class="card">
+      <div class="grid">
+        <div><label for="totalLoan">贷款总额（万元）</label><input id="totalLoan" type="number" value="220" min="1" step="0.1" /></div>
+        <div><label for="years">贷款年限（年）</label><input id="years" type="number" value="30" min="1" max="40" step="1" /></div>
+        <div><label for="commercialRate">商贷年利率（%）</label><input id="commercialRate" type="number" value="3.85" min="0" step="0.01" /></div>
+        <div><label for="fundRate">公积金年利率（%）</label><input id="fundRate" type="number" value="2.85" min="0" step="0.01" /></div>
+        <div><label for="fundMax">可用公积金上限（万元）</label><input id="fundMax" type="number" value="120" min="0" step="0.1" /></div>
+        <div>
+          <label for="mode">组合方式</label>
+          <select id="mode">
+            <option value="auto">自动：公积金用到上限</option>
+            <option value="custom">自定义公积金金额</option>
+          </select>
+        </div>
+        <div><label for="customFund">自定义公积金金额（万元）</label><input id="customFund" type="number" value="100" min="0" step="0.1" /></div>
+      </div>
+      <div class="actions">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="resetBtn">恢复默认</button>
+        <button class="btn-sub" id="copyBtn">复制结论</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultBox">
+      <p class="kpi">等待计算</p>
+      <p class="muted">点击“开始计算”查看组合贷是否更划算。</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card"><h3>方案 A：全商贷</h3><ul class="list" id="planA"><li class="muted">-</li></ul></div>
+      <div class="card"><h3>方案 B：组合贷</h3><ul class="list" id="planB"><li class="muted">-</li></ul></div>
+      <div class="card"><h3>关键结论</h3><ul class="list" id="keyList"><li class="muted">-</li></ul></div>
+    </div>
+
+    <div class="card">
+      <div class="cta" id="ctaBox" style="display:none;">
+        <h3 id="ctaTitle">领取你的贷款结构优化建议</h3>
+        <p id="ctaText">我会按你的额度限制给出“省息优先 / 月供优先 / 平衡版”三套方案。</p>
+        <div class="cta-actions">
+          <a id="consultLink" class="cta-primary" href="../consulting/index.html?source=fund-mix-calculator">预约咨询</a>
+          <a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E5%85%AC%E7%A7%AF%E9%87%91%E7%BB%84%E5%90%88%E8%B4%B7%E5%92%A8%E8%AF%A2">邮件咨询</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaults = { totalLoan: 220, years: 30, commercialRate: 3.85, fundRate: 2.85, fundMax: 120, mode: 'auto', customFund: 100 };
+    function n(id){ return Number(document.getElementById(id).value); }
+    function money(v){ return '¥' + Math.round(v).toLocaleString('zh-CN'); }
+    function wan(v){ return (v/10000).toFixed(2)+' 万'; }
+    function annuityPayment(principal, annualRate, months){ if(principal<=0||months<=0) return 0; const r=annualRate/12; if(r===0) return principal/months; return principal*r*Math.pow(1+r,months)/(Math.pow(1+r,months)-1); }
+    function totalInterest(principal, annualRate, months){ const p=annuityPayment(principal,annualRate,months); return p*months-principal; }
+
+    function reset(){
+      Object.keys(defaults).forEach(k=>document.getElementById(k).value=defaults[k]);
+      document.getElementById('resultBox').innerHTML='<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看组合贷是否更划算。</p>';
+      document.getElementById('planA').innerHTML='<li class="muted">-</li>';
+      document.getElementById('planB').innerHTML='<li class="muted">-</li>';
+      document.getElementById('keyList').innerHTML='<li class="muted">-</li>';
+      document.getElementById('ctaBox').style.display='none';
+    }
+
+    function calc(){
+      const totalLoan=n('totalLoan')*10000;
+      const years=n('years');
+      const cRate=n('commercialRate')/100;
+      const fRate=n('fundRate')/100;
+      const fundMax=n('fundMax')*10000;
+      const mode=document.getElementById('mode').value;
+      const customFund=n('customFund')*10000;
+      if([totalLoan,years,cRate,fRate,fundMax,customFund].some(v=>Number.isNaN(v))){alert('请检查输入参数');return;}
+      if(totalLoan<=0||years<=0){alert('贷款总额和年限必须大于0');return;}
+      const months=Math.round(years*12);
+
+      const fundPart=Math.max(0, Math.min(totalLoan, mode==='auto'?fundMax:customFund));
+      const comPart=Math.max(0, totalLoan-fundPart);
+
+      const pmtAll=annuityPayment(totalLoan,cRate,months);
+      const intAll=totalInterest(totalLoan,cRate,months);
+
+      const pmtCom=annuityPayment(comPart,cRate,months);
+      const pmtFund=annuityPayment(fundPart,fRate,months);
+      const pmtMix=pmtCom+pmtFund;
+      const intMix=totalInterest(comPart,cRate,months)+totalInterest(fundPart,fRate,months);
+
+      const interestSaved=intAll-intMix;
+      const monthlySaved=pmtAll-pmtMix;
+      let badge='收益一般'; let badgeClass='badge-mid'; let title='组合贷略优，可按流程成本再判断';
+      if(interestSaved>50000){ badge='明显更优'; badgeClass='badge-good'; title='组合贷优势明显，建议优先用足公积金'; }
+
+      document.getElementById('resultBox').innerHTML=`<span class="badge ${badgeClass}">${badge}</span><p class="kpi">${title}</p><p class="muted">预计总利息可减少 ${money(interestSaved)}，月供减少 ${money(monthlySaved)}。</p>`;
+
+      document.getElementById('planA').innerHTML=[
+        `<li>月供：<b>${money(pmtAll)}</b></li>`,
+        `<li>总利息：<b>${money(intAll)}</b></li>`,
+        `<li>贷款结构：<b>商贷 ${wan(totalLoan)}</b></li>`
+      ].join('');
+      document.getElementById('planB').innerHTML=[
+        `<li>月供：<b>${money(pmtMix)}</b></li>`,
+        `<li>总利息：<b>${money(intMix)}</b></li>`,
+        `<li>公积金：<b>${wan(fundPart)}</b> + 商贷：<b>${wan(comPart)}</b></li>`
+      ].join('');
+      document.getElementById('keyList').innerHTML=[
+        `<li>总利息差额：<b>${money(interestSaved)}</b></li>`,
+        `<li>月供差额：<b>${money(monthlySaved)}</b>/月</li>`,
+        `<li>公积金占比：<b>${((fundPart/totalLoan)*100).toFixed(1)}%</b></li>`,
+        `<li>建议：优先确认当地公积金额度与办理周期</li>`
+      ].join('');
+
+      document.getElementById('consultLink').href=`../consulting/index.html?source=fund-mix-calculator&save=${Math.round(interestSaved)}`;
+      document.getElementById('mailLink').href=`mailto:zorouyang@icloud.com?subject=${encodeURIComponent('公积金组合贷优化咨询（第8工具）')}&body=${encodeURIComponent('预计总利息差额：'+Math.round(interestSaved)+' 元\n月供差额：'+Math.round(monthlySaved)+' 元/月\n请给我最优结构建议。')}`;
+      document.getElementById('ctaBox').style.display='block';
+
+      window.__summary=`${badge}｜预计省息 ${money(interestSaved)}｜月供下降 ${money(monthlySaved)}`;
+    }
+
+    function copySummary(){ if(!window.__summary){alert('请先计算再复制');return;} navigator.clipboard.writeText(window.__summary).then(()=>alert('已复制')).catch(()=>alert('复制失败')); }
+
+    document.getElementById('calcBtn').addEventListener('click',calc);
+    document.getElementById('resetBtn').addEventListener('click',reset);
+    document.getElementById('copyBtn').addEventListener('click',copySummary);
+  </script>
+</body>
+</html>
