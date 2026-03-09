@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>房贷现金流安全垫计算器 | Zor 的副业笔记</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0; color: #4b5563; }
+    .tip { background: #eff6ff; border: 1px solid #93c5fd; color: #1e3a8a; border-radius: 10px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    label { display: block; font-size: 13px; color: #374151; margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; }
+    .kpi { font-size: 24px; font-weight: 700; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: #374151; }
+    .result-level {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .lv-green { background: #dcfce7; color: #166534; }
+    .lv-yellow { background: #fef3c7; color: #92400e; }
+    .lv-red { background: #fee2e2; color: #991b1b; }
+    .cta {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .cta h3 { margin: 0 0 6px; font-size: 20px; }
+    .cta p { margin: 0 0 10px; color: #d1d5db; }
+    .cta-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cta a {
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .cta-primary { background: #22c55e; color: #052e16; }
+    .cta-secondary { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; }
+    .footer-links a { color: #1d4ed8; text-decoration: none; margin-right: 10px; }
+    @media (max-width: 760px) {
+      h1 { font-size: 24px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🛡️ 房贷现金流安全垫计算器（第 5 个工具）</h1>
+      <p class="sub">先判断你是否有资格提前还款：现金流够稳，再谈省利息。</p>
+    </div>
+
+    <div class="card tip">
+      这个工具适合：想提前还贷、但不确定会不会影响家庭现金流安全的人。
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="monthlyIncome">税后月收入（元）</label>
+          <input id="monthlyIncome" type="number" value="35000" min="1" step="100" />
+        </div>
+        <div>
+          <label for="monthlyExpense">月固定开支（不含房贷，元）</label>
+          <input id="monthlyExpense" type="number" value="12000" min="0" step="100" />
+        </div>
+        <div>
+          <label for="mortgagePayment">当前月供（元）</label>
+          <input id="mortgagePayment" type="number" value="12000" min="0" step="100" />
+        </div>
+        <div>
+          <label for="cashReserve">可用现金储备（万元）</label>
+          <input id="cashReserve" type="number" value="35" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="incomeDrop">压力测试：收入下滑（%）</label>
+          <input id="incomeDrop" type="number" value="20" min="0" max="80" step="1" />
+        </div>
+        <div>
+          <label for="plannedPrepay">计划提前还款（万元）</label>
+          <input id="plannedPrepay" type="number" value="20" min="0" step="0.1" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="resetBtn">恢复默认</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultBox">
+      <p class="kpi">等待计算</p>
+      <p class="muted">点击“开始计算”查看你当前是否适合提前还款。</p>
+    </div>
+
+    <div class="card">
+      <h3>关键指标</h3>
+      <ul class="list" id="metricList"><li class="muted">-</li></ul>
+    </div>
+
+    <div class="card">
+      <h3>行动建议</h3>
+      <ul class="list" id="actionList"><li class="muted">-</li></ul>
+
+      <div class="cta" id="ctaBox" style="display:none;">
+        <h3 id="ctaTitle">获取你的专属还贷动作清单</h3>
+        <p id="ctaText">给你一份可执行的 3 套方案（保守 / 平衡 / 激进）。</p>
+        <div class="cta-actions">
+          <a id="consultLink" class="cta-primary" href="../consulting/index.html?source=cashflow-buffer-calculator">预约 30 分钟 1v1（付费）</a>
+          <a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E6%88%BF%E8%B4%B7%E4%BC%98%E5%8C%96%E8%AF%A2%E8%AF%A2">邮件咨询</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card footer-links">
+      更多工具：
+      <a href="https://zor-sideproject.github.io/tools/mortgage-calculator/" target="_blank" rel="noreferrer">房贷提前还款计算器</a>
+      <a href="https://zor-sideproject.github.io/tools/prepay-strategy-comparator/" target="_blank" rel="noreferrer">提前还款策略对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/" target="_blank" rel="noreferrer">工具主页</a>
+    </div>
+  </div>
+
+  <script>
+    const defaults = {
+      monthlyIncome: 35000,
+      monthlyExpense: 12000,
+      mortgagePayment: 12000,
+      cashReserve: 35,
+      incomeDrop: 20,
+      plannedPrepay: 20
+    };
+
+    function n(id) { return Number(document.getElementById(id).value); }
+    function money(v) { return '¥' + Math.round(v).toLocaleString('zh-CN'); }
+
+    function reset() {
+      Object.keys(defaults).forEach(k => document.getElementById(k).value = defaults[k]);
+      document.getElementById('resultBox').innerHTML = '<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看你当前是否适合提前还款。</p>';
+      document.getElementById('metricList').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('actionList').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('ctaBox').style.display = 'none';
+    }
+
+    function calc() {
+      const monthlyIncome = n('monthlyIncome');
+      const monthlyExpense = n('monthlyExpense');
+      const mortgagePayment = n('mortgagePayment');
+      const cashReserve = n('cashReserve') * 10000;
+      const incomeDrop = n('incomeDrop');
+      const plannedPrepay = n('plannedPrepay') * 10000;
+
+      if ([monthlyIncome, monthlyExpense, mortgagePayment, cashReserve, incomeDrop, plannedPrepay].some(v => Number.isNaN(v) || v < 0)) {
+        alert('请检查输入参数');
+        return;
+      }
+      if (monthlyIncome <= 0) {
+        alert('月收入必须大于 0');
+        return;
+      }
+
+      const essential = monthlyExpense + mortgagePayment;
+      const freeCashflow = monthlyIncome - essential;
+      const dti = mortgagePayment / monthlyIncome;
+      const bufferMonths = essential > 0 ? cashReserve / essential : 0;
+
+      const stressedIncome = monthlyIncome * (1 - incomeDrop / 100);
+      const stressedFreeCashflow = stressedIncome - essential;
+      const reserveAfterPrepay = Math.max(0, cashReserve - plannedPrepay);
+      const bufferAfterPrepay = essential > 0 ? reserveAfterPrepay / essential : 0;
+
+      let score = 0;
+      if (dti > 0.5) score += 2; else if (dti > 0.35) score += 1;
+      if (bufferMonths < 6) score += 2; else if (bufferMonths < 12) score += 1;
+      if (stressedFreeCashflow < 0) score += 2; else if (stressedFreeCashflow < 2000) score += 1;
+      if (bufferAfterPrepay < 6) score += 2; else if (bufferAfterPrepay < 12) score += 1;
+
+      let level = 'green';
+      let levelText = '绿灯：可考虑提前还款';
+      let levelClass = 'lv-green';
+      let summary = '你的现金流和安全垫相对健康，可以进入“优化收益”阶段。';
+      let actions = [
+        '保留至少 12 个月的家庭安全垫后，再执行提前还款。',
+        '优先选择“缩短年限”方案，通常总利息节省更高。',
+        '按季度复盘一次收入稳定性，避免一次性还款过度。'
+      ];
+
+      if (score >= 6) {
+        level = 'red';
+        levelText = '红灯：暂不建议提前还款';
+        levelClass = 'lv-red';
+        summary = '你当前更需要保现金流，不建议现在把大额资金投入提前还贷。';
+        actions = [
+          '优先把安全垫提高到 6-12 个月生活成本。',
+          '先做“高息债务清理”和“固定开支压缩”。',
+          '等收入波动减小后，再评估提前还款。'
+        ];
+      } else if (score >= 3) {
+        level = 'yellow';
+        levelText = '黄灯：建议先补安全垫';
+        levelClass = 'lv-yellow';
+        summary = '你可以小额试探性提前还款，但应先确保现金流不紧绷。';
+        actions = [
+          '把安全垫先补到 9-12 个月，再做大额提前还款。',
+          '采用“分批提前还款”而不是一次性全砸。',
+          '提前还款后，保证月结余仍为正。'
+        ];
+      }
+
+      document.getElementById('resultBox').innerHTML = `
+        <span class="result-level ${levelClass}">${levelText}</span>
+        <p class="kpi">${summary}</p>
+        <p class="muted">你的综合风险评分：${score}（分数越高，现金流风险越大）</p>
+      `;
+
+      document.getElementById('metricList').innerHTML = [
+        `<li>当前月结余：<b>${money(freeCashflow)}</b></li>`,
+        `<li>房贷负担率（月供/收入）：<b>${(dti * 100).toFixed(1)}%</b></li>`,
+        `<li>当前安全垫：<b>${bufferMonths.toFixed(1)} 个月</b></li>`,
+        `<li>压力测试后月结余（收入下滑 ${incomeDrop}%）：<b>${money(stressedFreeCashflow)}</b></li>`,
+        `<li>若提前还款后安全垫：<b>${bufferAfterPrepay.toFixed(1)} 个月</b></li>`
+      ].join('');
+
+      document.getElementById('actionList').innerHTML = actions.map(x => `<li>${x}</li>`).join('');
+
+      const ctaBox = document.getElementById('ctaBox');
+      const ctaTitle = document.getElementById('ctaTitle');
+      const ctaText = document.getElementById('ctaText');
+      const consultLink = document.getElementById('consultLink');
+      const mailLink = document.getElementById('mailLink');
+
+      if (level === 'red') {
+        ctaTitle.textContent = '先做现金流保命方案（更适合你）';
+        ctaText.textContent = '我会给你“先活下来再优化”的 3 步执行表。';
+      } else if (level === 'yellow') {
+        ctaTitle.textContent = '做一份平衡版提前还贷计划';
+        ctaText.textContent = '在不压垮现金流的前提下，逐步降低总利息。';
+      } else {
+        ctaTitle.textContent = '做一份收益最大化提前还贷方案';
+        ctaText.textContent = '把还款节奏、金额和节省利息一次算清楚。';
+      }
+
+      consultLink.href = `../consulting/index.html?source=cashflow-buffer-calculator&level=${level}&score=${score}`;
+      mailLink.href = `mailto:zorouyang@icloud.com?subject=${encodeURIComponent('房贷优化咨询（来自现金流工具）')}&body=${encodeURIComponent('我的风险等级：' + level + '\n评分：' + score + '\n请给我一版专属房贷动作清单。')}`;
+      ctaBox.style.display = 'block';
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+  </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>咨询与服务 | Zor 的副业笔记</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b1220;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap { max-width: 880px; margin: 24px auto; padding: 0 16px; }
+    .card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 30px; color: #fff; }
+    h2 { margin: 0 0 8px; color: #fff; }
+    p { color: #9ca3af; line-height: 1.7; }
+    .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .plan { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; }
+    .price { font-size: 28px; font-weight: 800; color: #86efac; margin: 6px 0; }
+    .tag { display: inline-block; font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #1e293b; color: #cbd5e1; }
+    ul { color: #cbd5e1; padding-left: 18px; margin: 10px 0; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .btn-main { background: #22c55e; color: #052e16; }
+    .btn-sub { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; }
+    .muted { color: #64748b; font-size: 13px; }
+    @media (max-width: 900px) {
+      .plans { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>💼 房贷优化咨询服务</h1>
+      <p>你可以继续免费用工具；如果你想“直接拿执行方案”，可以预约 1v1 咨询，我会按你的真实参数给出行动路径。</p>
+      <p class="muted">适合：有房贷压力、计划提前还款、想平衡现金流与长期收益的人。</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <span class="tag">入门版</span>
+        <h2>30 分钟快问快答</h2>
+        <div class="price">¥99</div>
+        <ul>
+          <li>识别你当前最优先问题</li>
+          <li>给出 1 条可执行路径</li>
+          <li>适合快速决策</li>
+        </ul>
+      </div>
+
+      <div class="plan">
+        <span class="tag">主推</span>
+        <h2>60 分钟策略咨询</h2>
+        <div class="price">¥299</div>
+        <ul>
+          <li>给你 3 套方案（保守/平衡/激进）</li>
+          <li>明确每月动作与风险边界</li>
+          <li>附简版执行清单</li>
+        </ul>
+      </div>
+
+      <div class="plan">
+        <span class="tag">进阶版</span>
+        <h2>7 天跟进辅导</h2>
+        <div class="price">¥599</div>
+        <ul>
+          <li>1 次 60 分钟深度梳理</li>
+          <li>7 天内答疑 + 调整建议</li>
+          <li>适合正在执行中的人</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>如何预约</h2>
+      <p>目前先用邮件对接。你发送基本信息后，我会回复可预约时间与付款方式。</p>
+      <div class="btn-row">
+        <a class="btn btn-main" href="mailto:zorouyang@icloud.com?subject=%E9%A2%84%E7%BA%A6%E6%88%BF%E8%B4%B7%E4%BC%98%E5%8C%96%E5%92%A8%E8%AF%A2&body=%E6%88%91%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%83%85%E5%86%B5%EF%BC%9A%0A1.%20%E6%9C%88%E6%94%B6%E5%85%A5%EF%BC%9A%0A2.%20%E6%9C%88%E4%BE%9B%EF%BC%9A%0A3.%20%E5%89%A9%E4%BD%99%E8%B4%B7%E6%AC%BE%E6%9C%AC%E9%87%91%EF%BC%9A%0A4.%20%E7%9B%AE%E5%89%8D%E7%8E%B0%E9%87%91%E5%82%A8%E5%A4%87%EF%BC%9A%0A5.%20%E6%88%91%E6%83%B3%E8%A6%81%E8%A7%A3%E5%86%B3%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9A">立即预约</a>
+        <a class="btn btn-sub" href="https://zor-sideproject.github.io/tools/">先回工具主页</a>
+      </div>
+      <p class="muted">备注：本服务是个人经验咨询，不构成金融/法律建议。</p>
+    </div>
+  </div>
+</body>
+</html>
