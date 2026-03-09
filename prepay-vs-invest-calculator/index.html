@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>提前还贷 vs 定投指数对比器 | Zor 的副业笔记</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .wrap { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0; color: #4b5563; }
+    .tip {
+      background: #ecfeff;
+      border: 1px solid #67e8f9;
+      color: #155e75;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    label { display: block; font-size: 13px; color: #374151; margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-main { background: #2563eb; color: #fff; }
+    .btn-sub { background: #e5e7eb; color: #111827; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .badge-a { background: #dcfce7; color: #166534; }
+    .badge-b { background: #dbeafe; color: #1e3a8a; }
+    .badge-even { background: #f3f4f6; color: #374151; }
+    .kpi { font-size: 24px; font-weight: 800; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: #374151; }
+    .cta {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+    .cta h3 { margin: 0 0 6px; }
+    .cta p { margin: 0 0 10px; color: #d1d5db; }
+    .cta-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cta a {
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .cta-primary { background: #22c55e; color: #052e16; }
+    .cta-secondary { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; }
+    .footer-links a { color: #1d4ed8; text-decoration: none; margin-right: 10px; }
+    @media (max-width: 760px) {
+      h1 { font-size: 24px; }
+      .grid, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>📈 提前还贷 vs 定投指数对比器（第 6 个工具）</h1>
+      <p class="sub">同一笔钱：拿去提前还贷，还是长期定投？给你一个可量化的决策框架。</p>
+    </div>
+
+    <div class="card tip">
+      说明：这是“策略比较工具”，非投资建议。核心是把机会成本算清楚，再按你的风险偏好决策。
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="remainPrincipal">剩余贷款本金（万元）</label>
+          <input id="remainPrincipal" type="number" value="180" min="1" step="0.1" />
+        </div>
+        <div>
+          <label for="loanRate">贷款年利率（%）</label>
+          <input id="loanRate" type="number" value="3.6" min="0" step="0.01" />
+        </div>
+        <div>
+          <label for="remainYears">剩余期限（年）</label>
+          <input id="remainYears" type="number" value="26" min="1" max="40" step="1" />
+        </div>
+        <div>
+          <label for="prepayAmount">可动用资金（万元）</label>
+          <input id="prepayAmount" type="number" value="20" min="0.1" step="0.1" />
+        </div>
+        <div>
+          <label for="investReturn">预期投资年化收益（%）</label>
+          <input id="investReturn" type="number" value="7" min="0" step="0.1" />
+        </div>
+        <div>
+          <label for="investTax">投资收益摩擦/税费（%）</label>
+          <input id="investTax" type="number" value="10" min="0" max="80" step="1" />
+        </div>
+        <div>
+          <label for="discipline">月供差额实际投资比例（%）</label>
+          <input id="discipline" type="number" value="80" min="0" max="100" step="1" />
+        </div>
+        <div>
+          <label for="prepayFee">提前还款违约成本（%）</label>
+          <input id="prepayFee" type="number" value="0" min="0" max="10" step="0.1" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-main" id="calcBtn">开始计算</button>
+        <button class="btn-sub" id="resetBtn">恢复默认</button>
+        <button class="btn-sub" id="copyBtn">复制结论</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultBox">
+      <p class="kpi">等待计算</p>
+      <p class="muted">点击“开始计算”查看哪条路径更适合你。</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>方案 A：提前还贷</h3>
+        <ul class="list" id="planA"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>方案 B：直接投资</h3>
+        <ul class="list" id="planB"><li class="muted">-</li></ul>
+      </div>
+      <div class="card">
+        <h3>关键结论</h3>
+        <ul class="list" id="keyList"><li class="muted">-</li></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cta" id="ctaBox" style="display:none;">
+        <h3 id="ctaTitle">领取你的专属策略版本</h3>
+        <p id="ctaText">我会按你的参数给出保守 / 平衡 / 激进三套执行节奏。</p>
+        <div class="cta-actions">
+          <a id="consultLink" class="cta-primary" href="../consulting/index.html?source=prepay-vs-invest-calculator">预约 60 分钟咨询</a>
+          <a id="mailLink" class="cta-secondary" href="mailto:zorouyang@icloud.com?subject=%E6%8F%90%E5%89%8D%E8%BF%98%E8%B4%B7vs%E6%8A%95%E8%B5%84%E8%AF%A2%E8%AF%A2">邮件咨询</a>
+        </div>
+      </div>
+      <p class="muted" style="margin-top: 10px;">提示：投资收益有波动，计算结果依赖你的收益假设与执行纪律。</p>
+    </div>
+
+    <div class="card footer-links">
+      更多工具：
+      <a href="https://zor-sideproject.github.io/tools/prepay-strategy-comparator/" target="_blank" rel="noreferrer">提前还款策略对比器</a>
+      <a href="https://zor-sideproject.github.io/tools/cashflow-buffer-calculator/" target="_blank" rel="noreferrer">现金流安全垫计算器</a>
+      <a href="https://zor-sideproject.github.io/tools/consulting/" target="_blank" rel="noreferrer">咨询服务</a>
+    </div>
+  </div>
+
+  <script>
+    const defaults = {
+      remainPrincipal: 180,
+      loanRate: 3.6,
+      remainYears: 26,
+      prepayAmount: 20,
+      investReturn: 7,
+      investTax: 10,
+      discipline: 80,
+      prepayFee: 0
+    };
+
+    function n(id) { return Number(document.getElementById(id).value); }
+    function money(v) { return '¥' + Math.round(v).toLocaleString('zh-CN'); }
+    function wan(v) { return (v / 10000).toFixed(2) + ' 万'; }
+
+    function annuityPayment(principal, annualRate, months) {
+      if (principal <= 0 || months <= 0) return 0;
+      const r = annualRate / 12;
+      if (r === 0) return principal / months;
+      return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+    }
+
+    function totalInterest(principal, annualRate, months) {
+      if (principal <= 0 || months <= 0) return 0;
+      const pay = annuityPayment(principal, annualRate, months);
+      return pay * months - principal;
+    }
+
+    function fvLump(amount, annualRate, years) {
+      if (amount <= 0) return 0;
+      if (annualRate === 0) return amount;
+      return amount * Math.pow(1 + annualRate, years);
+    }
+
+    function fvAnnuityMonthly(monthly, annualRate, months) {
+      if (monthly <= 0 || months <= 0) return 0;
+      const r = annualRate / 12;
+      if (r === 0) return monthly * months;
+      return monthly * (Math.pow(1 + r, months) - 1) / r;
+    }
+
+    function breakEvenRate(targetFv, amount, years) {
+      if (amount <= 0 || years <= 0) return 0;
+      if (targetFv <= amount) return 0;
+      return Math.pow(targetFv / amount, 1 / years) - 1;
+    }
+
+    function reset() {
+      Object.keys(defaults).forEach(k => document.getElementById(k).value = defaults[k]);
+      document.getElementById('resultBox').innerHTML = '<p class="kpi">已恢复默认参数</p><p class="muted">点击“开始计算”查看哪条路径更适合你。</p>';
+      document.getElementById('planA').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('planB').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('keyList').innerHTML = '<li class="muted">-</li>';
+      document.getElementById('ctaBox').style.display = 'none';
+    }
+
+    function calc() {
+      const remainPrincipal = n('remainPrincipal') * 10000;
+      const loanRate = n('loanRate') / 100;
+      const remainYears = n('remainYears');
+      const prepayAmount = n('prepayAmount') * 10000;
+      const investReturn = n('investReturn') / 100;
+      const investTax = n('investTax') / 100;
+      const discipline = n('discipline') / 100;
+      const prepayFee = n('prepayFee') / 100;
+
+      const vals = [remainPrincipal, loanRate, remainYears, prepayAmount, investReturn, investTax, discipline, prepayFee];
+      if (vals.some(v => Number.isNaN(v))) {
+        alert('请检查输入参数');
+        return;
+      }
+      if (remainPrincipal <= 0 || remainYears <= 0 || prepayAmount <= 0) {
+        alert('剩余本金、期限、可动用资金必须大于 0');
+        return;
+      }
+      if (prepayAmount >= remainPrincipal) {
+        alert('该版本用于比较“部分提前还款”，可动用资金应小于剩余本金');
+        return;
+      }
+
+      const months = Math.round(remainYears * 12);
+      const investNet = investReturn * (1 - investTax);
+
+      const pmtBase = annuityPayment(remainPrincipal, loanRate, months);
+      const interestBase = totalInterest(remainPrincipal, loanRate, months);
+
+      const principalAfter = remainPrincipal - prepayAmount;
+      const pmtAfter = annuityPayment(principalAfter, loanRate, months);
+      const interestAfter = totalInterest(principalAfter, loanRate, months);
+
+      const interestSaved = interestBase - interestAfter;
+      const monthlyDiff = Math.max(0, pmtBase - pmtAfter) * discipline;
+
+      const fvPlanA = fvAnnuityMonthly(monthlyDiff, investNet, months) - fvLump(prepayAmount * prepayFee, investNet, remainYears);
+      const fvPlanB = fvLump(prepayAmount, investNet, remainYears);
+      const gap = fvPlanA - fvPlanB;
+
+      const equivalentAnnual = breakEvenRate(prepayAmount + interestSaved, prepayAmount, remainYears);
+      const level = gap > 0 ? 'A' : (gap < 0 ? 'B' : 'E');
+
+      let badgeClass = 'badge-even';
+      let badgeText = '结果接近';
+      let title = '两种方式结果接近，按风险偏好选择';
+      let summary = `在你当前假设下，两种策略的期末差距约 ${money(Math.abs(gap))}。`;
+      if (level === 'A') {
+        badgeClass = 'badge-a';
+        badgeText = '更偏向方案 A（提前还贷）';
+        title = '在当前参数下，提前还贷更占优';
+        summary = `方案 A 期末比方案 B 多 ${money(gap)}（考虑了你设置的投资执行比例与违约成本）。`;
+      } else if (level === 'B') {
+        badgeClass = 'badge-b';
+        badgeText = '更偏向方案 B（直接投资）';
+        title = '在当前参数下，直接投资更占优';
+        summary = `方案 B 期末比方案 A 多 ${money(-gap)}（前提是你能长期达到设定收益并坚持执行）。`;
+      }
+
+      document.getElementById('resultBox').innerHTML = `
+        <span class="badge ${badgeClass}">${badgeText}</span>
+        <p class="kpi">${title}</p>
+        <p class="muted">${summary}</p>
+      `;
+
+      document.getElementById('planA').innerHTML = [
+        `<li>提前还款金额：<b>${wan(prepayAmount)}</b></li>`,
+        `<li>提前还后月供：<b>${money(pmtAfter)}</b>（原 ${money(pmtBase)}）</li>`,
+        `<li>总利息节省：<b>${money(interestSaved)}</b></li>`,
+        `<li>月供差额可投资：<b>${money(monthlyDiff)}</b> / 月</li>`,
+        `<li>方案 A 期末价值（近似）：<b>${money(fvPlanA)}</b></li>`
+      ].join('');
+
+      document.getElementById('planB').innerHTML = [
+        `<li>一次性投资金额：<b>${wan(prepayAmount)}</b></li>`,
+        `<li>净年化收益假设：<b>${(investNet * 100).toFixed(2)}%</b></li>`,
+        `<li>投资期限：<b>${remainYears} 年</b></li>`,
+        `<li>方案 B 期末价值（近似）：<b>${money(fvPlanB)}</b></li>`,
+        `<li>执行风险：<b>收益波动 + 持有纪律</b></li>`
+      ].join('');
+
+      document.getElementById('keyList').innerHTML = [
+        `<li>提前还款的等效年化（粗估）：<b>${(equivalentAnnual * 100).toFixed(2)}%</b></li>`,
+        `<li>在你的参数下，资金用途差额：<b>${money(Math.abs(gap))}</b></li>`,
+        `<li>若你无法长期执行投资纪律，可降低投资预期再重算</li>`,
+        `<li>若现金流较紧，建议先跑一次“现金流安全垫工具”再决策</li>`
+      ].join('');
+
+      const ctaBox = document.getElementById('ctaBox');
+      const ctaTitle = document.getElementById('ctaTitle');
+      const ctaText = document.getElementById('ctaText');
+      const consultLink = document.getElementById('consultLink');
+      const mailLink = document.getElementById('mailLink');
+
+      if (level === 'A') {
+        ctaTitle.textContent = '做一版“分批提前还款 + 剩余资金配置”方案';
+        ctaText.textContent = '把现金流安全和长期收益一起平衡，不做极端决策。';
+      } else if (level === 'B') {
+        ctaTitle.textContent = '做一版“投资优先但有回撤保护”方案';
+        ctaText.textContent = '避免理论收益很高，实操却扛不住波动。';
+      } else {
+        ctaTitle.textContent = '做一版“稳健中间路线”方案';
+        ctaText.textContent = '当结果接近时，用执行难度和风险承受力决策。';
+      }
+
+      consultLink.href = `../consulting/index.html?source=prepay-vs-invest-calculator&level=${level}&gap=${Math.round(gap)}`;
+      mailLink.href = `mailto:zorouyang@icloud.com?subject=${encodeURIComponent('提前还贷vs投资咨询（来自第6工具）')}&body=${encodeURIComponent('我的结论：' + badgeText + '\n差额：' + Math.round(gap) + ' 元\n请给我保守/平衡/激进三套动作。')}`;
+      ctaBox.style.display = 'block';
+
+      window.__latestSummary = `${badgeText}｜${title}｜差额 ${money(Math.abs(gap))}`;
+    }
+
+    function copySummary() {
+      if (!window.__latestSummary) {
+        alert('请先计算再复制结论');
+        return;
+      }
+      navigator.clipboard.writeText(window.__latestSummary).then(function() {
+        alert('结论已复制');
+      }).catch(function() {
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+    document.getElementById('copyBtn').addEventListener('click', copySummary);
+  </script>
+</body>
+</html>
