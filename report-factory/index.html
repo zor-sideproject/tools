@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11. Report Factory | 浏览器版</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:#0b1020;color:#eaf0ff}
+    .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 40px}
+    .card{background:#111a33;border:1px solid #26345f;border-radius:12px;padding:14px;margin-bottom:12px}
+    h1,h2{margin:0 0 10px}
+    .muted{color:#97a7d1}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,button{padding:10px;border-radius:8px;border:1px solid #2f4379;background:#0e1733;color:#eaf0ff}
+    button{cursor:pointer;background:#2357da;border-color:#2357da}
+    .badge{display:inline-block;background:#24345f;color:#bed0ff;padding:4px 8px;border-radius:8px;font-size:12px;margin:0 8px 8px 0}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #253560;text-align:left;font-size:14px}
+    #charts>div{height:320px;margin-bottom:12px}
+    pre{background:#0c132a;padding:10px;border-radius:8px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>11. 📦 Report Factory（浏览器版）</h1>
+      <p class="muted">上传 CSV/XLSX，自动识别字段、生成统计摘要与图表（本地处理，不上传服务器）。</p>
+      <div class="row">
+        <input id="file" type="file" accept=".csv,.xlsx,.xls" />
+        <button onclick="run()">开始分析</button>
+      </div>
+      <p class="muted" id="status">等待文件...</p>
+    </div>
+
+    <div class="card">
+      <h2>摘要</h2>
+      <div id="summary"></div>
+      <div id="badges"></div>
+    </div>
+
+    <div class="card">
+      <h2>统计</h2>
+      <table>
+        <thead><tr><th>字段</th><th>最小值</th><th>最大值</th><th>均值</th><th>总和</th><th>缺失率</th></tr></thead>
+        <tbody id="statsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>图表</h2>
+      <div id="charts"></div>
+    </div>
+
+    <div class="card">
+      <h2>样本数据</h2>
+      <pre id="sample">[]</pre>
+    </div>
+  </div>
+
+<script>
+function toNum(v){ if(v===null||v===undefined||v==='') return NaN; const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:NaN }
+function isDateLike(v){ if(v===null||v===undefined||v==='') return false; const t=Date.parse(v); return !Number.isNaN(t) }
+function pickCols(rows){
+  const cols = Object.keys(rows[0]||{});
+  const numeric=[],date=[],cat=[];
+  cols.forEach(c=>{
+    const vals=rows.map(r=>r[c]).filter(v=>v!==''&&v!==null&&v!==undefined);
+    if(!vals.length) return;
+    const numOk=vals.map(toNum).filter(v=>!Number.isNaN(v)).length/vals.length;
+    if(numOk>=0.8){ numeric.push(c); return; }
+    const dateOk=vals.filter(isDateLike).length/vals.length;
+    if(dateOk>=0.8){ date.push(c); return; }
+    cat.push(c);
+  });
+  return {numeric,date,cat};
+}
+function stats(rows, numeric){
+  return numeric.slice(0,10).map(c=>{
+    const arr=rows.map(r=>toNum(r[c])).filter(v=>!Number.isNaN(v));
+    const miss=(rows.length-arr.length)/rows.length;
+    if(!arr.length) return {c,min:'-',max:'-',mean:'-',sum:'-',miss};
+    const sum=arr.reduce((a,b)=>a+b,0);
+    return {c,min:Math.min(...arr),max:Math.max(...arr),mean:sum/arr.length,sum,miss};
+  })
+}
+function groupByDayAvg(rows,dcol,ncol){
+  const m={};
+  rows.forEach(r=>{
+    const d=new Date(r[dcol]);
+    const n=toNum(r[ncol]);
+    if(Number.isNaN(d.getTime())||Number.isNaN(n)) return;
+    const key=d.toISOString().slice(0,10);
+    if(!m[key]) m[key]=[];
+    m[key].push(n);
+  });
+  const keys=Object.keys(m).sort();
+  return {x:keys,y:keys.map(k=>m[k].reduce((a,b)=>a+b,0)/m[k].length)};
+}
+function groupByCatSum(rows,ccol,ncol){
+  const m={};
+  rows.forEach(r=>{
+    const c=String(r[ccol]??'').trim();
+    const n=toNum(r[ncol]);
+    if(!c||Number.isNaN(n)) return;
+    m[c]=(m[c]||0)+n;
+  });
+  const pairs=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  return {x:pairs.map(p=>p[0]),y:pairs.map(p=>p[1])};
+}
+function render(analysis){
+  document.getElementById('summary').textContent=analysis.summary;
+  document.getElementById('badges').innerHTML=`
+    <span class='badge'>行数：${analysis.rows}</span>
+    <span class='badge'>列数：${analysis.cols}</span>
+    <span class='badge'>数值字段：${analysis.numeric.length}</span>
+    <span class='badge'>日期字段：${analysis.date.length}</span>
+    <span class='badge'>分类字段：${analysis.cat.length}</span>`;
+
+  const tb=document.getElementById('statsBody'); tb.innerHTML='';
+  analysis.stats.forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${s.c}</td><td>${fmt(s.min)}</td><td>${fmt(s.max)}</td><td>${fmt(s.mean)}</td><td>${fmt(s.sum)}</td><td>${(s.miss*100).toFixed(1)}%</td>`;
+    tb.appendChild(tr);
+  });
+
+  const charts=document.getElementById('charts'); charts.innerHTML='';
+  if(analysis.date.length&&analysis.numeric.length){
+    const id='c1'; const d=document.createElement('div'); d.id=id; charts.appendChild(d);
+    const g=groupByDayAvg(analysis.rowsData,analysis.date[0],analysis.numeric[0]);
+    Plotly.newPlot(id,[{type:'scatter',mode:'lines+markers',x:g.x,y:g.y}],{title:`${analysis.numeric[0]} 趋势（按日均值）`,paper_bgcolor:'#111a33',plot_bgcolor:'#111a33',font:{color:'#eaf0ff'}},{displayModeBar:false,responsive:true});
+  }
+  if(analysis.cat.length&&analysis.numeric.length){
+    const id='c2'; const d=document.createElement('div'); d.id=id; charts.appendChild(d);
+    const g=groupByCatSum(analysis.rowsData,analysis.cat[0],analysis.numeric[0]);
+    Plotly.newPlot(id,[{type:'bar',x:g.x,y:g.y}],{title:`${analysis.numeric[0]} 分类对比`,paper_bgcolor:'#111a33',plot_bgcolor:'#111a33',font:{color:'#eaf0ff'}},{displayModeBar:false,responsive:true});
+  }
+
+  document.getElementById('sample').textContent=JSON.stringify(analysis.rowsData.slice(0,8),null,2);
+}
+function fmt(v){ return (typeof v==='number'&&Number.isFinite(v)) ? v.toFixed(2) : '-' }
+
+async function parseFile(file){
+  const name=file.name.toLowerCase();
+  if(name.endsWith('.csv')){
+    return new Promise((resolve,reject)=>{
+      Papa.parse(file,{header:true,skipEmptyLines:true,complete:(res)=>resolve(res.data),error:reject});
+    });
+  }
+  if(name.endsWith('.xlsx')||name.endsWith('.xls')){
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws,{defval:''});
+  }
+  throw new Error('仅支持 csv/xlsx/xls');
+}
+
+async function run(){
+  const f=document.getElementById('file').files[0];
+  if(!f) return alert('请先选择文件');
+  const status=document.getElementById('status');
+  status.textContent='分析中...';
+  try{
+    const rows=await parseFile(f);
+    if(!rows.length) throw new Error('文件无有效数据');
+    const cols=Object.keys(rows[0]||{});
+    const picked=pickCols(rows);
+    const s=stats(rows,picked.numeric);
+    const analysis={
+      summary:`共分析 ${rows.length} 行、${cols.length} 列。`,
+      rows:rows.length,
+      cols:cols.length,
+      numeric:picked.numeric,
+      date:picked.date,
+      cat:picked.cat,
+      stats:s,
+      rowsData:rows
+    };
+    render(analysis);
+    status.textContent='完成 ✅';
+  }catch(e){
+    status.textContent='失败：'+(e?.message||e);
+  }
+}
+</script>
+</body>
+</html>
